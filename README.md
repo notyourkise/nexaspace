@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/nexaspace.webp" alt="NexaSpace" width="520">
+</p>
+
 # NexaSpace
 
 NexaSpace is a smart PropTech platform for boarding-house management. It helps
