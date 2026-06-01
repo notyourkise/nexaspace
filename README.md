@@ -2,7 +2,18 @@
   <img src="public/images/nexaspace.webp" alt="NexaSpace" width="520">
 </p>
 
-# NexaSpace
+<h1 align="center">NexaSpace</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white" alt="Laravel 12">
+  <img src="https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white" alt="PHP 8.4">
+  <img src="https://img.shields.io/badge/Filament-5.6-FDAE4B?logo=filament&logoColor=black" alt="Filament 5.6">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white" alt="MySQL 8">
+  <img src="https://img.shields.io/badge/MikroTik-RouterOS-293239?logo=mikrotik&logoColor=white" alt="MikroTik RouterOS">
+  <img src="https://img.shields.io/badge/Midtrans-Snap-00A9E0" alt="Midtrans Snap">
+</p>
 
 NexaSpace is a smart PropTech platform for boarding-house management. It helps
 property owners manage tenants, devices, and billing from one dashboard while
@@ -51,7 +62,7 @@ manual payment receipt from their own portal.
 
 | Area | Technology |
 |---|---|
-| Backend | Laravel 13.12 |
+| Backend | Laravel 12 |
 | Runtime | PHP 8.4 |
 | UI | Filament 5.6 |
 | Frontend build | Vite 8, Tailwind CSS 4 |
@@ -210,8 +221,3 @@ production deployment, add focused coverage for:
 - Device recovery after payment
 - Midtrans signature validation and webhook idempotency
 - Receipt upload authorization and validation
-
-## Development Guide
-
-See [`CLAUDE.md`](CLAUDE.md) for the detailed project guide, implementation
-notes, and current backlog.
