@@ -14,6 +14,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 
 class SubscriptionResource extends Resource
 {
@@ -89,7 +90,7 @@ class SubscriptionResource extends Resource
                     }),
             ]))
             ->defaultSort('subscription_month', 'desc')
-            ->filters([
+            ->filters(array_filter([
                 SelectFilter::make('status')
                     ->label('Status')
                     ->options([
@@ -97,7 +98,48 @@ class SubscriptionResource extends Resource
                         'paid'    => 'Lunas',
                         'overdue' => 'Menunggak',
                     ]),
-            ])
+
+                $isDeveloper
+                    ? SelectFilter::make('plan')
+                        ->label('Paket')
+                        ->options([
+                            'lite'   => 'LITE',
+                            'pro'    => 'PRO',
+                            'custom' => 'CUSTOM',
+                        ])
+                        ->query(fn (Builder $query, array $data): Builder =>
+                            isset($data['value']) && $data['value']
+                                ? $query->whereHas('juragan', fn (Builder $q) => $q->where('plan', $data['value']))
+                                : $query
+                        )
+                    : null,
+
+                SelectFilter::make('subscription_month')
+                    ->label('Bulan')
+                    ->options(function (): array {
+                        $query = Subscription::query()
+                            ->selectRaw('DATE_FORMAT(subscription_month, "%Y-%m-01") as val')
+                            ->groupByRaw('DATE_FORMAT(subscription_month, "%Y-%m-01")')
+                            ->orderByRaw('DATE_FORMAT(subscription_month, "%Y-%m-01") DESC');
+
+                        $user = auth()->user();
+                        if ($user && $user->isJuragan()) {
+                            $query->where('juragan_id', $user->id);
+                        }
+
+                        return $query->pluck('val')
+                            ->mapWithKeys(fn (string $val) => [
+                                $val => Carbon::parse($val)->locale('id')->isoFormat('MMMM Y'),
+                            ])
+                            ->toArray();
+                    })
+                    ->query(fn (Builder $query, array $data): Builder =>
+                        isset($data['value']) && $data['value']
+                            ? $query->whereYear('subscription_month', Carbon::parse($data['value'])->year)
+                                    ->whereMonth('subscription_month', Carbon::parse($data['value'])->month)
+                            : $query
+                    ),
+            ]))
             ->actions([])
             ->bulkActions(array_filter([
                 $isDeveloper

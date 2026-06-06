@@ -9,6 +9,181 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 09:30 WITA — Bugfix: MySQL ONLY_FULL_GROUP_BY Error pada Filter Bulan Subscriptions
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/SubscriptionResource.php` | Pada query opsi filter bulan: ubah `groupByRaw('DATE_FORMAT(subscription_month, "%Y-%m")')` → `groupByRaw('DATE_FORMAT(..., "%Y-%m-01")')` dan `orderByDesc('subscription_month')` → `orderByRaw('DATE_FORMAT(..., "%Y-%m-01") DESC')` agar ekspresi di SELECT, GROUP BY, dan ORDER BY identik. |
+
+**Alasan Perubahan:**
+Membuka halaman `/admin/subscriptions` langsung memunculkan `SQLSTATE[42000]: Syntax error or access violation: 1055 Expression #1 of SELECT list is not in GROUP BY clause`. MySQL mode `ONLY_FULL_GROUP_BY` (aktif secara default di MySQL 8) menolak query karena `SELECT DATE_FORMAT(..., "%Y-%m-01")` dan `ORDER BY subscription_month` menggunakan ekspresi berbeda dari `GROUP BY DATE_FORMAT(..., "%Y-%m")`. MySQL tidak bisa membuktikan dependensi fungsional secara otomatis dalam kasus ini.
+
+**Hasil Akhir:**
+Halaman `/admin/subscriptions` terbuka normal. Filter Bulan menampilkan dropdown nama bulan Bahasa Indonesia dari data yang ada. 125/125 test hijau.
+
+---
+
+### 09:00 WITA — Filter Paket & Bulan di Halaman Subscriptions
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/SubscriptionResource.php` | Tambah 2 filter baru: (1) **Filter Paket** — developer-only, dropdown LITE/PRO/CUSTOM, memfilter via relasi `juragan.plan`. (2) **Filter Bulan** — semua role, dropdown dinamis berisi bulan-bulan yang tersedia di database (nama bulan Bahasa Indonesia via Carbon locale `id`), memfilter dengan `whereYear` + `whereMonth`. |
+
+**Alasan Perubahan:**
+Developer perlu bisa menyaring subscription berdasarkan paket (misal: lihat semua juragan PRO yang belum bayar) dan berdasarkan bulan tertentu (misal: lihat semua tagihan Januari 2026). Sebelumnya hanya ada filter status saja.
+
+**Detail implementasi:**
+- Filter Paket hanya muncul untuk developer (conditional via `array_filter` + `$isDeveloper`)
+- Filter Bulan mengambil opsi dari data yang sudah ada di tabel `subscriptions` — jika juragan yang login, opsi dibatasi hanya bulan miliknya sendiri
+- Nama bulan ditampilkan dalam Bahasa Indonesia menggunakan `Carbon::locale('id')->isoFormat('MMMM Y')`
+
+**Hasil Akhir:**
+Halaman `/admin/subscriptions` kini memiliki 3 filter: Status, Paket (developer-only), dan Bulan. 125/125 test hijau.
+
+---
+
+### 08:30 WITA — Tambah Hapus Tagihan per Baris & Bulk Delete di Halaman Billings
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/BillingResource.php` | (1) Tambah `DeleteAction` di row actions tabel — tombol hapus per baris dengan konfirmasi modal. (2) Tambah `DeleteBulkAction` di bulk actions — hapus banyak tagihan sekaligus dengan konfirmasi. Data isolation tetap berlaku: juragan hanya bisa melihat/menghapus tagihan anak kosnya sendiri via `getEloquentQuery()`. |
+
+**Alasan Perubahan:**
+Juragan perlu bisa menghapus tagihan yang salah input (misal: tagihan duplikat, nominal keliru yang tidak bisa di-edit ulang, atau tagihan untuk anak kos yang sudah pindah). Sebelumnya hanya ada aksi edit dan download invoice, tanpa opsi hapus.
+
+**Hasil Akhir:**
+- Setiap baris di `/admin/billings` kini memiliki tombol "Hapus" dengan konfirmasi
+- Centang beberapa tagihan → bulk action "Hapus" → konfirmasi → semua terhapus
+- Juragan hanya bisa menghapus tagihan anak kosnya sendiri (isolasi data)
+- 125/125 test hijau
+
+---
+
+### 08:00 WITA — Bugfix: Class "Filament\Notifications\Actions\Action" Not Found pada Invoice Gabungan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/BillingResource.php` | Hapus import `use Filament\Notifications\Actions\Action as NotificationAction;` (class tidak ada di Filament 5.6). Ganti `NotificationAction::make('download')` → `Action::make('download')` menggunakan `Filament\Actions\Action` yang sudah diimpor. |
+
+**Alasan Perubahan:**
+Klik bulk action "Invoice Gabungan (PDF)" di halaman `/admin/billings` memunculkan error fatal:
+```
+Class "Filament\Notifications\Actions\Action" not found
+```
+Investigasi ke source `vendor/filament/notifications/src/Concerns/HasActions.php` membuktikan bahwa `HasActions` di package notifications menggunakan `Filament\Actions\Action` (bukan sub-namespace `Notifications\Actions\Action`). Class tersebut memang tidak pernah ada di Filament 5.
+
+**Hasil Akhir:**
+Bulk action "Invoice Gabungan (PDF)" berjalan tanpa error. Setelah memilih billing dari satu anak kos dan mengkonfirmasi, notifikasi persistent muncul dengan tombol "Download PDF →" yang membuka invoice gabungan di tab baru. 125/125 test hijau.
+
+---
+
+### 07:30 WITA — Lihat Bukti Bayar & Invoice Gabungan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/BillingResource.php` | (1) Kolom `IconColumn payment_receipt` — ikon foto hijau jika ada bukti, abu-abu jika belum; klik ikon buka receipt di tab baru. (2) Filter "Bukti Bayar" (ada/belum). (3) `BulkAction::download_merged_invoice` — pilih beberapa billing, klik "Invoice Gabungan (PDF)", muncul notifikasi persistent dengan tombol "Download PDF →" yang buka invoice gabungan di tab baru. Validasi: semua tagihan harus milik satu anak kos. |
+| `app/Http/Controllers/InvoiceController.php` | Tambah `downloadMerged(Request)`: ambil `ids` dari query param (maks 36), validasi auth per billing, validasi semua milik 1 tenant, generate PDF dari template `invoices.billing-merged`, download sebagai `invoice-gabungan-YYYY-MM-sd-YYYY-MM.pdf` |
+| `resources/views/invoices/billing-merged.blade.php` | Template PDF baru: header + pihak yang terlibat + tabel multi-baris (satu baris per billing: periode, jatuh tempo, status badge, nominal) + total di footer tabel + summary box (lunas/belum lunas/total) + QRIS jika ada tagihan belum lunas + footer NexaSpace |
+| `routes/web.php` | Route baru `GET /invoice/billing-merged` → `InvoiceController::downloadMerged` bernama `invoice.billing.merged` |
+
+**Alasan Perubahan:**
+Juragan perlu melihat bukti transfer yang diupload anak kos langsung dari halaman admin billings tanpa harus masuk ke panel anak kos. Dan sering kali juragan perlu mencetak/mengirimkan rekap tagihan beberapa bulan sekaligus ke anak kos atau keperluan audit.
+
+**Hasil Akhir:**
+- Kolom "Bukti" di `/admin/billings` menampilkan ikon hijau jika receipt sudah diupload; klik langsung buka file-nya di tab baru
+- Filter "Bukti Bayar" untuk cepat melihat siapa yang sudah/belum upload
+- Centang 2-12 billing dari bulan berbeda (milik satu anak kos) → klik "Invoice Gabungan (PDF)" → konfirmasi → notifikasi muncul dengan tombol "Download PDF →" → download 1 file PDF dengan semua bulan dalam satu tabel
+- 125/125 test hijau
+
+---
+
+### 06:30 WITA — Bugfix: Backfill Tagihan Bulan Sebelumnya saat move_in_date di Masa Lalu
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/BillingResource/Pages/CreateBilling.php` | Tambah `afterCreate()`: setelah bill manual dibuat, cek apakah `move_in_date` ada di bulan yang sudah lewat. Jika ya, backfill semua bulan yang belum punya bill dari `move_in_date + 1 bulan` hingga bulan ini. Tampilkan notifikasi jumlah bill yang dibuat. |
+
+**Alasan Perubahan:**
+Saat juragan memasukkan `move_in_date = 1 Maret` tetapi saat ini sudah Juni, sistem hanya membuat 1 tagihan (Juni). Seharusnya sistem mendeteksi gap dan otomatis membuat tagihan April, Mei, Juni — yaitu semua bulan dari bulan setelah masuk hingga bulan ini yang belum ada tagihannya.
+
+**Aturan backfill:**
+- Penagihan dimulai dari **bulan setelah bulan masuk** (bukan bulan masuk itu sendiri)
+- Contoh: `move_in_date = 1 Maret` → tagihan pertama = April → backfill April, Mei; + Juni dari form = total 3 tagihan
+- Idempotent: bulan yang sudah ada tagihan dilewati
+- Notifikasi sukses muncul jika ada tagihan backfill yang dibuat
+
+**Hasil Akhir:**
+Juragan mengisi `move_in_date = 1 Maret`, klik simpan → sistem otomatis membuat tagihan April, Mei, Juni sekaligus. Muncul notifikasi "2 tagihan bulan sebelumnya otomatis dibuat". 125/125 test hijau.
+
+---
+
+### 06:00 WITA — Tanggal Masuk Anak Kos & Auto-Tagihan Bulanan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `database/migrations/2026_06_06_213828_add_move_in_date_to_users_table.php` | Kolom baru `move_in_date` (date, nullable) pada tabel `users`; diisi juragan untuk menandai kapan anak kos pertama masuk |
+| `app/Models/User.php` | `move_in_date` ditambahkan ke `#[Fillable]` dan di-cast sebagai `date` |
+| `app/Filament/Resources/UserResource.php` | `DatePicker::make('move_in_date')` ditambahkan pada form anak kos (visible ketika role = tenant); helper text `monthly_rate` diperbarui |
+| `app/Filament/Resources/BillingResource.php` | `user_id` menjadi `->live()` dengan `afterStateUpdated`: saat anak kos dipilih, otomatis isi `move_in_date`, `amount` (dari monthly_rate), `billing_month` (bulan ini), dan `due_date` (7 hari setelah tanggal masuk). Tambah `move_in_date` DatePicker dengan `afterStateHydrated` (untuk mode edit). Label form diindonesiakan. |
+| `app/Filament/Resources/BillingResource/Pages/CreateBilling.php` | `mutateFormDataBeforeCreate`: ekstrak `move_in_date` dari data form → simpan ke `users`, hapus dari data billing sebelum `Billing::create()` |
+| `app/Filament/Resources/BillingResource/Pages/EditBilling.php` | `mutateFormDataBeforeSave`: idem untuk mode edit; tambah `DeleteAction` di header |
+| `app/Services/BillingService.php` | (1) `generateMonthlyBills()` kini exclude tenant dengan `move_in_date` (mereka punya siklus sendiri); (2) Tambah `generateBillsForMoveInDay(int $day)`: generate tagihan untuk tenant yang `DAY(move_in_date) == $day`; (3) Tambah `createBillForTenant(User $tenant): bool`: buat tagihan satu tenant untuk bulan ini, return false jika sudah ada |
+| `app/Jobs/GenerateBillsByMoveInJob.php` | Job baru: panggil `BillingService::generateBillsForMoveInDay(Carbon::today()->day)` |
+| `routes/console.php` | Tambah schedule: `GenerateBillsByMoveInJob` harian 00:02 WITA |
+| `app/Filament/Widgets/BillingReminderWidget.php` | Widget baru juragan-only: tampilkan anak kos yang tanggal masuknya hari ini & belum punya tagihan bulan ini; aksi per-baris "Buat Tagihan" + tombol "Buat Semua"; "upcoming" preview 3 hari ke depan |
+| `resources/views/filament/widgets/billing-reminder.blade.php` | Blade view widget: tabel anak kos pending hari ini + upcoming pills |
+| `app/Providers/Filament/AdminPanelProvider.php` | Daftarkan `BillingReminderWidget` setelah `JuraganOnboardingWidget` |
+
+**Alasan Perubahan:**
+Juragan membutuhkan cara untuk melacak kapan anak kos mulai menghuni kamar, agar tagihan bulanan dapat digenerate secara otomatis sesuai "ulang tahun" masuk masing-masing (bukan selalu tanggal 1 untuk semua). Ini juga memudahkan pengelolaan pergantian penghuni.
+
+**Hasil Akhir:**
+- Form `admin/billings/create` memiliki field **"Tanggal Masuk Anak Kos"**; saat anak kos dipilih, semua field (nominal, bulan, jatuh tempo, tanggal masuk) terisi otomatis dari data anak kos
+- Menyimpan tagihan juga memperbarui `move_in_date` di record user anak kos
+- **Auto-billing harian**: setiap tengah malam (00:02 WITA), sistem memeriksa anak kos dengan `move_in_date` yang hari-nya cocok dengan hari ini → tagihan dibuat otomatis
+- **Widget dashboard juragan** "Auto-Tagihan Hari Ini": tampil daftar anak kos yang perlu dibuat tagihannya hari ini + tombol "Buat Tagihan" per baris + "Buat Semua"; juga preview anak kos yang akan tagih dalam 3 hari ke depan
+- Tenant tanpa `move_in_date` tetap ditagih tanggal 1 (backward compatible)
+- 125/125 test tetap hijau
+
+---
+
+### 04:30 WITA — Full CRUD pada RegistrationResource
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Resources/RegistrationResource.php` | Diubah total: `canCreate()` diaktifkan (developer only); `form()` diisi lengkap dengan Section "Informasi Pendaftar" (name, kos_name, email, phone), Section "Detail Paket" (plan Select live + room_count dengan maxValue berbasis plan, status, payment_status), Section "Pesan / Catatan" (message Textarea collapsible); row actions: "Setujui & Buat Akun" (provision individual), "Edit" (ke edit page), "Hapus" (delete dengan konfirmasi); bulk action "Hapus" ditambahkan; `getPages()` kini mendaftarkan `create` dan `edit`; `getNavigationBadge()` menampilkan jumlah registrasi pending |
+| `app/Filament/Resources/RegistrationResource/Pages/CreateRegistration.php` | File baru — standard `CreateRecord`, redirect ke index setelah simpan |
+| `app/Filament/Resources/RegistrationResource/Pages/EditRegistration.php` | File baru — standard `EditRecord` dengan `DeleteAction` di header, redirect ke index setelah simpan |
+| `app/Filament/Resources/RegistrationResource/Pages/ListRegistrations.php` | Ditambahkan `getHeaderActions()` dengan `CreateAction` ("Tambah Pendaftaran") |
+
+**Alasan Perubahan:**
+Sebelumnya `/admin/registrations` hanya berupa list read-only dengan bulk actions. Developer tidak bisa membuat registrasi manual, mengedit data yang salah, atau menghapus record. Permintaan user: tambahkan full CRUD.
+
+**Hasil Akhir:**
+- Tombol **"Tambah Pendaftaran"** muncul di header list untuk developer
+- Setiap baris punya tiga row actions: **Setujui & Buat Akun** (provisioning langsung), **Edit** (buka halaman edit), **Hapus** (delete dengan konfirmasi modal)
+- Form create/edit lengkap: informasi pendaftar, paket (room_count dengan batas sesuai plan), status, payment_status, pesan
+- Badge merah di navigasi menampilkan jumlah registrasi berstatus `pending`
+- 125/125 test tetap hijau
+
+---
+
 ### 03:00 WITA — Halaman Profil & Rekening Bank untuk Juragan
 
 **Apa yang Diubah:**

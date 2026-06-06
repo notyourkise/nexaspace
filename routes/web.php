@@ -29,6 +29,9 @@ Route::get('/export/subscription', [ExportController::class, 'subscription'])->n
 // PDF invoice download — auth enforced inside the controller
 Route::get('/invoice/billing/{billing}', [InvoiceController::class, 'download'])->name('invoice.billing');
 
+// Merged PDF invoice for multiple billing IDs — auth enforced inside the controller
+Route::get('/invoice/billing-merged', [InvoiceController::class, 'downloadMerged'])->name('invoice.billing.merged');
+
 // Health check — can be pinged by uptime monitors (e.g. UptimeRobot)
 Route::get('/health', function () {
     try {

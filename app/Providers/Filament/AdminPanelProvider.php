@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Login;
+use App\Filament\Widgets\BillingReminderWidget;
 use App\Filament\Widgets\JuraganOnboardingWidget;
 use App\Filament\Widgets\JuraganQuotaWidget;
 use App\Filament\Widgets\MikroTikStatusWidget;
@@ -53,6 +54,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 JuraganOnboardingWidget::class,
+                BillingReminderWidget::class,
                 StatsOverview::class,
                 JuraganQuotaWidget::class,
                 RevenueChartWidget::class,

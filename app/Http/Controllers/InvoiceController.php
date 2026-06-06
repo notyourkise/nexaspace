@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 class InvoiceController extends Controller
 {
     /**
-     * Generate a PDF invoice for a billing record.
+     * Generate a PDF invoice for a single billing record.
      *
      * Access rules:
      *  - developer  → any billing
@@ -21,10 +21,7 @@ class InvoiceController extends Controller
     public function download(Request $request, Billing $billing): Response
     {
         $user = $request->user();
-
-        if (! $user) {
-            abort(403);
-        }
+        if (! $user) abort(403);
 
         $this->authorizeAccess($user, $billing);
 
@@ -42,25 +39,75 @@ class InvoiceController extends Controller
         return $pdf->download($filename);
     }
 
-    private function authorizeAccess($user, Billing $billing): void
+    /**
+     * Generate a single merged PDF invoice for multiple billing records.
+     * All billings must belong to the same tenant.
+     *
+     * Query param: ids = comma-separated billing IDs (max 36 months)
+     */
+    public function downloadMerged(Request $request): Response
     {
-        if ($user->isDeveloper()) {
-            return;
+        $user = $request->user();
+        if (! $user) abort(403);
+
+        $rawIds = array_filter(
+            array_map('intval', explode(',', $request->query('ids', '')))
+        );
+
+        abort_if(empty($rawIds), 400);
+
+        // Cap at 36 months for safety
+        $ids = array_slice(array_unique(array_values($rawIds)), 0, 36);
+
+        $billings = Billing::with('user.juragan')
+            ->whereIn('id', $ids)
+            ->orderBy('billing_month')
+            ->get();
+
+        abort_if($billings->isEmpty(), 404);
+
+        // Authorize each billing
+        foreach ($billings as $billing) {
+            $this->authorizeAccess($user, $billing);
         }
 
+        // All billings must belong to the same tenant
+        abort_if($billings->pluck('user_id')->unique()->count() > 1, 422);
+
+        $tenant      = $billings->first()->user;
+        $juragan     = $tenant?->juragan;
+        $totalAmount = $billings->sum('amount');
+        $paidAmount  = $billings->where('status', 'paid')->sum('amount');
+        $unpaidAmount = $totalAmount - $paidAmount;
+
+        $monthFrom = Carbon::parse($billings->first()->billing_month)->format('Y-m');
+        $monthTo   = Carbon::parse($billings->last()->billing_month)->format('Y-m');
+        $filename  = "invoice-gabungan-{$monthFrom}-sd-{$monthTo}.pdf";
+
+        $pdf = Pdf::loadView('invoices.billing-merged', [
+            'billings'     => $billings,
+            'tenant'       => $tenant,
+            'juragan'      => $juragan,
+            'totalAmount'  => $totalAmount,
+            'paidAmount'   => $paidAmount,
+            'unpaidAmount' => $unpaidAmount,
+            'generatedAt'  => Carbon::now(),
+        ])->setPaper('a4');
+
+        return $pdf->download($filename);
+    }
+
+    private function authorizeAccess($user, Billing $billing): void
+    {
+        if ($user->isDeveloper()) return;
+
         if ($user->isJuragan()) {
-            // Juragan may only view bills of their own anak kos.
-            if ($billing->user?->juragan_id !== $user->id) {
-                abort(403);
-            }
+            abort_unless($billing->user?->juragan_id === $user->id, 403);
             return;
         }
 
         if ($user->isTenant()) {
-            // Tenant may only view their own billing.
-            if ($billing->user_id !== $user->id) {
-                abort(403);
-            }
+            abort_unless($billing->user_id === $user->id, 403);
             return;
         }
 

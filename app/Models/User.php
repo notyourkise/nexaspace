@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'contact_email', 'password', 'role', 'juragan_id', 'kos_name', 'kos_slug', 'plan', 'room_quota', 'room_number', 'phone_number', 'monthly_rate', 'suspended_at', 'mikrotik_host', 'mikrotik_port', 'mikrotik_user', 'mikrotik_pass', 'qris_image', 'bank_accounts'])]
+#[Fillable(['name', 'email', 'contact_email', 'password', 'role', 'juragan_id', 'kos_name', 'kos_slug', 'plan', 'room_quota', 'room_number', 'move_in_date', 'phone_number', 'monthly_rate', 'suspended_at', 'mikrotik_host', 'mikrotik_port', 'mikrotik_user', 'mikrotik_pass', 'qris_image', 'bank_accounts'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -31,6 +31,7 @@ class User extends Authenticatable implements FilamentUser
             'suspended_at'      => 'datetime',
             'mikrotik_port'     => 'integer',
             'bank_accounts'     => 'array',
+            'move_in_date'      => 'date',
         ];
     }
 

@@ -76,22 +76,23 @@ class BillingService
     }
 
     /**
-     * Generate monthly billing records for all active tenants with a monthly_rate set.
-     * Runs on the 1st of each month; skips tenants that already have a bill this month (idempotent).
-     * Due date is always the 10th of the billing month.
-     * Sends one summary email per juragan after generation.
+     * Generate monthly billing records for tenants WITHOUT a move_in_date.
+     * Runs on the 1st of each month. Tenants with move_in_date are handled
+     * by generateBillsForMoveInDay() which runs daily.
+     * Idempotent: skips tenants that already have a bill this month.
+     * Due date: 10th of the billing month.
      */
     public function generateMonthlyBills(): void
     {
         $billingMonth = Carbon::now()->startOfMonth();
-        $dueDate      = Carbon::now()->startOfMonth()->addDays(9); // 1st + 9 days = 10th
+        $dueDate      = Carbon::now()->startOfMonth()->addDays(9); // 10th of month
 
-        // Collect created bill stats per juragan for notification.
         $statsByJuragan = [];
 
         User::query()
             ->where('role', 'tenant')
             ->where('monthly_rate', '>', 0)
+            ->whereNull('move_in_date') // Tenants with move_in_date have their own daily billing cycle
             ->with('juragan')
             ->chunk(50, function ($tenants) use ($billingMonth, $dueDate, &$statsByJuragan): void {
                 foreach ($tenants as $tenant) {
@@ -110,7 +111,6 @@ class BillingService
                             'status'        => 'unpaid',
                         ]);
 
-                        // Accumulate stats per juragan for notification.
                         $juragan = $tenant->juragan;
                         if ($juragan && $juragan->contact_email) {
                             $statsByJuragan[$juragan->id] ??= [
@@ -125,7 +125,6 @@ class BillingService
                 }
             });
 
-        // Send one summary email per juragan.
         $monthLabel = $billingMonth->translatedFormat('F Y');
 
         foreach ($statsByJuragan as $stat) {
@@ -138,6 +137,101 @@ class BillingService
                 )
             );
         }
+    }
+
+    /**
+     * Generate billing records for tenants whose move_in_date day matches the given day.
+     * Called daily by GenerateBillsByMoveInJob. Idempotent per month.
+     * Due date: 7 days after the billing day (generous grace for tenants on custom cycles).
+     */
+    public function generateBillsForMoveInDay(int $day): void
+    {
+        $today        = Carbon::today();
+        $billingMonth = $today->copy()->startOfMonth();
+        $dueDate      = $today->copy()->addDays(7);
+
+        $statsByJuragan = [];
+
+        User::query()
+            ->where('role', 'tenant')
+            ->where('monthly_rate', '>', 0)
+            ->whereNotNull('move_in_date')
+            ->whereRaw('DAY(move_in_date) = ?', [$day])
+            ->with('juragan')
+            ->chunk(50, function ($tenants) use ($billingMonth, $dueDate, &$statsByJuragan): void {
+                foreach ($tenants as $tenant) {
+                    $exists = Billing::query()
+                        ->where('user_id', $tenant->id)
+                        ->whereYear('billing_month', $billingMonth->year)
+                        ->whereMonth('billing_month', $billingMonth->month)
+                        ->exists();
+
+                    if (! $exists) {
+                        Billing::create([
+                            'user_id'       => $tenant->id,
+                            'amount'        => $tenant->monthly_rate,
+                            'billing_month' => $billingMonth,
+                            'due_date'      => $dueDate,
+                            'status'        => 'unpaid',
+                        ]);
+
+                        $juragan = $tenant->juragan;
+                        if ($juragan && $juragan->contact_email) {
+                            $statsByJuragan[$juragan->id] ??= [
+                                'juragan'     => $juragan,
+                                'billCount'   => 0,
+                                'totalAmount' => 0,
+                            ];
+                            $statsByJuragan[$juragan->id]['billCount']++;
+                            $statsByJuragan[$juragan->id]['totalAmount'] += $tenant->monthly_rate;
+                        }
+                    }
+                }
+            });
+
+        $monthLabel = $billingMonth->translatedFormat('F Y');
+
+        foreach ($statsByJuragan as $stat) {
+            Mail::to($stat['juragan']->contact_email)->send(
+                new BillingCreatedMail(
+                    $stat['juragan'],
+                    $stat['billCount'],
+                    $monthLabel,
+                    $stat['totalAmount'],
+                )
+            );
+        }
+    }
+
+    /**
+     * Create a bill for a single tenant for the current month.
+     * Returns true if a new bill was created, false if it already existed.
+     * Due date: 7 days from today.
+     */
+    public function createBillForTenant(User $tenant): bool
+    {
+        $billingMonth = Carbon::today()->startOfMonth();
+        $dueDate      = Carbon::today()->addDays(7);
+
+        $exists = Billing::query()
+            ->where('user_id', $tenant->id)
+            ->whereYear('billing_month', $billingMonth->year)
+            ->whereMonth('billing_month', $billingMonth->month)
+            ->exists();
+
+        if ($exists) {
+            return false;
+        }
+
+        Billing::create([
+            'user_id'       => $tenant->id,
+            'amount'        => $tenant->monthly_rate,
+            'billing_month' => $billingMonth,
+            'due_date'      => $dueDate,
+            'status'        => 'unpaid',
+        ]);
+
+        return true;
     }
 
     /**

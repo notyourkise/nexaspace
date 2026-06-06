@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\GenerateBillsByMoveInJob;
 use App\Jobs\GenerateMonthlyBillsJob;
 use App\Jobs\GenerateMonthlySubscriptionsJob;
 use App\Jobs\SendBillingReminderJob;
@@ -20,10 +21,16 @@ Schedule::job(ThrottleOverdueTenantsJob::class)
     ->name('throttle-overdue-tenants')
     ->withoutOverlapping();
 
-// Generate monthly bills on the 1st of every month at 00:01 WITA
+// Generate monthly bills on the 1st of every month at 00:01 WITA (for tenants without move_in_date)
 Schedule::job(GenerateMonthlyBillsJob::class)
     ->monthlyOn(1, '00:01')
     ->name('generate-monthly-bills')
+    ->withoutOverlapping();
+
+// Generate bills for tenants with move_in_date matching today's day (daily 00:02 WITA)
+Schedule::job(GenerateBillsByMoveInJob::class)
+    ->dailyAt('00:02')
+    ->name('generate-bills-by-movein')
     ->withoutOverlapping();
 
 // Generate monthly subscription invoices for juragan on the 1st at 00:05 WITA

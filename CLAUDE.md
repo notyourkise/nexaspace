@@ -142,16 +142,15 @@ configured unless the target environment explicitly provides it.
 
 ### Admin Panel
 
-- CRUD for users, devices, and billings
+- CRUD for users, devices, and billings (including delete per-row and bulk delete)
 - User role filter and device count
 - Device status filter and bulk status actions
 - Manual bulk MikroTik synchronization
-- Billing status filter and bulk paid/unpaid actions
-- Subscription management: list juragan subscriptions; developer bulk mark paid/unpaid;
-  juragan sees only their own subscriptions
-- Registration management: developer-only list of pending signups; columns include
-  `payment_status` badge (Lunas / Belum Bayar); bulk actions to mark payment
-  paid/unpaid manually; bulk "Setujui & Buat Akun" action
+- Billing list: status filter, "Bukti Bayar" filter (has/no receipt), receipt icon column (click to open receipt in new tab), per-row delete, bulk delete, bulk paid/unpaid
+- Merged PDF invoice: select multiple billings from the same tenant → bulk action → download combined PDF (multi-month table, summary boxes, QRIS block)
+- Subscription management: list juragan subscriptions; filter by status/plan/month; developer bulk mark paid/unpaid; juragan sees only their own subscriptions
+- Registration management: full CRUD; developer-only; navigation badge for pending count; bulk actions: provisioning, mark payment paid/unpaid, mark rejected, delete; `payment_status` badge column
+- move_in_date billing: form auto-fills move_in_date, amount, billing_month, due_date when tenant is selected; backfill past months on first bill creation; `BillingReminderWidget` on juragan dashboard
 - Dashboard statistics:
   - total tenants
   - active devices
@@ -235,6 +234,7 @@ bank transfer. No payment gateway is used.
 | `plan` | Nullable enum `lite`/`pro`/`custom`; juragan's subscription package |
 | `room_quota` | Anak-kos account capacity for the juragan's plan (20/40/50+) |
 | `monthly_rate` | Anak kos monthly rent in IDR (used by auto-generate bills) |
+| `move_in_date` | Nullable date; anak kos move-in date; used to auto-generate bills on the matching day each month |
 | `room_number` | Nullable anak kos room number |
 | `phone_number` | Nullable phone number |
 | `suspended_at` | Nullable timestamp; set by `SuspendOverdueJuraganJob`; cleared by `SubscriptionObserver` |
@@ -333,12 +333,13 @@ Relationship: `Subscription belongsTo User as juragan`
 | `app/Jobs/ThrottleOverdueTenantsJob.php` | Queue wrapper for overdue anak kos checks |
 | `app/Jobs/RestoreDevicesJob.php` | Async job: restores throttled devices via `BillingService` after payment |
 | `app/Http/Controllers/ExportController.php` | CSV export: `billing()` and `subscription()`; data isolation; BOM for Excel |
-| `app/Http/Controllers/InvoiceController.php` | PDF invoice: `download(Request, Billing)` via dompdf; access control: developer/juragan/tenant |
+| `app/Http/Controllers/InvoiceController.php` | PDF invoice: `download(Request, Billing)` single invoice; `downloadMerged(Request)` multi-billing combined PDF (up to 36 months, same tenant); access control: developer/juragan/tenant |
 | `app/Filament/Tenant/Pages/EditProfile.php` | Tenant self-service: profile form (name, phone) + password change |
 | `app/Filament/Widgets/JuraganOnboardingWidget.php` | Checklist onboarding juragan; hidden when complete |
 | `app/Filament/Widgets/MikroTikStatusWidget.php` | Developer-only router health check; polls every 5 min |
 | `app/Filament/Widgets/RevenueChartWidget.php` | Line chart: revenue last 6 months; scoped per juragan |
 | `resources/views/invoices/billing.blade.php` | DomPDF invoice template: brand header, parties, table, status badge, total, QRIS block |
+| `resources/views/invoices/billing-merged.blade.php` | DomPDF merged invoice: multi-row billing table (one row per month), summary boxes (paid/unpaid/total), QRIS block, NexaSpace footer |
 | `app/Models/ActivityLog.php` | Audit trail model; `record()` static helper; `UPDATED_AT = null`; `properties` cast → array |
 | `app/Filament/Resources/ActivityLogResource.php` | Developer-only read-only log viewer; badge-colored event column; filter per event type |
 | `app/Filament/Pages/RouterManagementPage.php` | Router management page; developer selects juragan; juragan sees own router; live DHCP lease table |
@@ -348,9 +349,12 @@ Relationship: `Subscription belongsTo User as juragan`
 | `app/Mail/BillingThrottledMail.php` | Email ke juragan saat anak kos di-throttle |
 | `app/Mail/SubscriptionReminderMail.php` | Email H-3 sebelum jatuh tempo subscription NexaSpace |
 | `app/Mail/JuraganSuspendedMail.php` | Email ke juragan saat akun disuspend |
+| `app/Jobs/GenerateBillsByMoveInJob.php` | Daily 00:02 WITA: generate bills for tenants whose `DAY(move_in_date)` matches today |
 | `app/Jobs/SendBillingReminderJob.php` | Daily 08:00 WITA: kirim reminder tagihan H-3 |
 | `app/Jobs/SendSubscriptionReminderJob.php` | Daily 08:05 WITA: kirim reminder subscription H-3 |
-| `routes/console.php` | Scheduler: throttle (01:00), generate-bills (1st 00:01), generate-subscriptions (1st 00:05), suspend-juragan (01:30) |
+| `app/Filament/Widgets/BillingReminderWidget.php` | Juragan-only dashboard widget: shows tenants due today (by move_in_date) who have no bill this month; per-row "Buat Tagihan" + "Buat Semua" actions; upcoming 3-day preview |
+| `resources/views/filament/widgets/billing-reminder.blade.php` | Blade view for BillingReminderWidget |
+| `routes/console.php` | Scheduler: throttle (01:00), generate-bills-by-movein (daily 00:02), generate-bills (1st 00:01), generate-subscriptions (1st 00:05), suspend-juragan (01:30), billing-reminder (08:00), subscription-reminder (08:05) |
 | `routes/web.php` | Landing page, `/daftar/{plan}`, `/daftar/sukses`, `/register`, webhook routes |
 | `app/Providers/Filament/AdminPanelProvider.php` | Admin Filament panel |
 | `app/Providers/Filament/TenantPanelProvider.php` | Tenant Filament panel |

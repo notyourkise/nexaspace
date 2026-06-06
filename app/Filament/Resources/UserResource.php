@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -113,7 +114,14 @@ class UserResource extends Resource
                 ->minValue(0)
                 ->default(0)
                 ->step(1000)
-                ->helperText('Nominal tagihan yang digenerate otomatis setiap tanggal 1.')
+                ->helperText('Nominal tagihan bulanan. Tagihan digenerate otomatis sesuai tanggal masuk.')
+                ->visible(fn (Get $get): bool => $get('role') === 'tenant'),
+
+            DatePicker::make('move_in_date')
+                ->label('Tanggal Masuk')
+                ->displayFormat('d F Y')
+                ->helperText('Tagihan bulanan auto-generate setiap tanggal ini. Update kapanpun ada pergantian penghuni.')
+                ->nullable()
                 ->visible(fn (Get $get): bool => $get('role') === 'tenant'),
 
             // ── MikroTik router config (developer only, for juragan) ──
