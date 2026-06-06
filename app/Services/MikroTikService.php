@@ -93,6 +93,25 @@ class MikroTikService
     }
 
     /**
+     * Return all DHCP leases from the router.
+     *
+     * @return array<int, array<string, string>>
+     */
+    public function getLeases(): array
+    {
+        try {
+            $client = $this->connect();
+            $query  = new Query('/ip/dhcp-server/lease/print');
+
+            return $client->query($query)->read();
+        } catch (Throwable $e) {
+            Log::error('[MikroTik] getLeases failed', ['host' => $this->host, 'error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    /**
      * Find a DHCP lease entry by MAC address.
      * Returns the lease array (including '.id') or null if not found.
      *

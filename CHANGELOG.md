@@ -5,6 +5,73 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+## [Sesi Kerja] — 8 Juni 2026
+
+---
+
+### 01:30 WITA — Opsi B: Manajemen Router MikroTik dari Panel Admin
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Services/MikroTikService.php` | Tambah method `getLeases(): array` — mengambil seluruh DHCP lease dari router via RouterOS API; error di-log dan mengembalikan array kosong |
+| `app/Filament/Pages/RouterManagementPage.php` | Halaman Filament baru; developer dapat memilih juragan dari dropdown; juragan hanya melihat router miliknya sendiri; menampilkan status koneksi (host/port/user/badge Terhubung–Tidak Terhubung) dan tabel DHCP lease |
+| `resources/views/filament/pages/router-management.blade.php` | Template Blade halaman router: dropdown juragan (developer only), seksi status koneksi, tabel lease dengan kolom MAC, IP, hostname, status, rate-limit, expires |
+
+**Alasan Perubahan:**
+Developer dan juragan sebelumnya tidak dapat melihat data DHCP lease langsung dari panel — harus login ke RouterOS secara manual. Halaman ini memberi visibilitas ke status perangkat di jaringan tanpa meninggalkan panel admin.
+
+**Hasil Akhir:**
+Halaman `/admin/router-management` kini tersedia di navigasi panel admin. Developer memilih juragan untuk melihat leases router mereka; juragan langsung melihat data router sendiri. Lease yang di-throttle ditandai dengan badge merah `256k/256k`.
+
+---
+
+### 01:15 WITA — Opsi D: Activity Log / Audit Trail
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `database/migrations/2026_06_06_200335_create_activity_logs_table.php` | Tabel `activity_logs` baru: `causer_id` (nullable FK → users), `causer_name` (snapshot nama), `subject_type`, `subject_id`, `event`, `description`, `properties` (JSON), `created_at` (tanpa `updated_at`) |
+| `app/Models/ActivityLog.php` | Model dengan `UPDATED_AT = null`, cast `properties` → array, relasi `causer()`, static helper `record(event, description, subject?, properties?, causer?)` |
+| `app/Observers/BillingObserver.php` | Mencatat `billing.status_changed` setiap kali status tagihan berubah; properties menyertakan `old_status`, `new_status`, `amount` |
+| `app/Observers/SubscriptionObserver.php` | Mencatat `subscription.status_changed`; mencatat tambahan `juragan.unsuspended` saat status → `paid` |
+| `app/Jobs/SuspendOverdueJuraganJob.php` | Mencatat `juragan.suspended` setiap kali juragan disuspend |
+| `app/Jobs/ProvisionTenantJob.php` | Import `ActivityLog`; mencatat `juragan.provisioned` setelah provisioning berhasil di dalam transaksi DB |
+| `app/Filament/Resources/ActivityLogResource.php` | Resource Filament developer-only (read-only: `canCreate/canEdit/canDelete` → false); tabel dengan kolom Waktu, Event (badge berwarna), Oleh, Keterangan; filter per event; default sort terbaru di atas |
+| `app/Filament/Resources/ActivityLogResource/Pages/ListActivityLogs.php` | Halaman daftar log aktivitas |
+
+**Alasan Perubahan:**
+Tidak ada jejak audit sebelumnya — perubahan status tagihan, suspend/unsuspend juragan, dan provisioning tidak terekam. Audit trail membantu developer mendiagnosis masalah dan melihat riwayat aktivitas platform.
+
+**Hasil Akhir:**
+Setiap perubahan status tagihan, langganan, suspend/unsuspend juragan, dan provisioning kini tercatat otomatis di tabel `activity_logs`. Developer dapat melihat seluruh riwayat di `/admin/activity-logs` dengan filter per jenis event. Tidak ada package eksternal tambahan.
+
+---
+
+### 01:00 WITA — Opsi C: QRIS Statis per Juragan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `database/migrations/2026_06_06_200118_add_qris_image_to_users_table.php` | Kolom `qris_image` (nullable string) ditambahkan ke tabel `users` setelah `mikrotik_pass` |
+| `app/Models/User.php` | `qris_image` ditambahkan ke `$fillable` |
+| `app/Filament/Resources/UserResource.php` | Seksi "QRIS Pembayaran" dengan `FileUpload` untuk kolom `qris_image`; tampil ketika juragan yang diedit adalah juragan (developer lihat semua, juragan edit milik sendiri) |
+| `app/Filament/Tenant/Widgets/QrisWidget.php` | Widget tenant baru; tampil hanya jika juragan memiliki `qris_image`; menampilkan gambar QR, nama kos, dan link WhatsApp konfirmasi |
+| `resources/views/filament/tenant/widgets/qris-widget.blade.php` | Template blade widget QRIS: gambar 44x44, instruksi pembayaran, nomor WA opsional |
+| `app/Providers/Filament/TenantPanelProvider.php` | Daftarkan `QrisWidget` di panel tenant |
+| `resources/views/invoices/billing.blade.php` | Blok QRIS ditambahkan di bagian bawah invoice PDF; tampil hanya jika `juragan->qris_image` ada dan tagihan belum `paid`; menggunakan `public_path()` bukan `asset()` karena DomPDF butuh path filesystem |
+
+**Alasan Perubahan:**
+Sebelumnya tidak ada cara bagi anak kos untuk mengetahui cara bayar via QRIS. Juragan biasanya memiliki QRIS statis dari bank atau dompet digital. Fitur ini memungkinkan juragan upload QR sekali; semua anak kos langsung bisa scan dari portal mereka.
+
+**Hasil Akhir:**
+Juragan dapat upload gambar QRIS di halaman edit profil mereka di panel admin. Anak kos melihat widget QRIS di dashboard tenant panel. Invoice PDF juga menyertakan gambar QRIS untuk tagihan yang belum dibayar.
+
+---
+
 ## [Sesi Kerja] — 7 Juni 2026
 
 ---

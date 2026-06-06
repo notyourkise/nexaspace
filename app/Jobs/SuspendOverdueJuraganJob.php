@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\JuraganSuspendedMail;
+use App\Models\ActivityLog;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -35,6 +36,13 @@ class SuspendOverdueJuraganJob implements ShouldQueue
 
                     if ($subscription->juragan && $subscription->juragan->suspended_at === null) {
                         $subscription->juragan->update(['suspended_at' => now()]);
+
+                        ActivityLog::record(
+                            event: 'juragan.suspended',
+                            description: "Akun juragan {$subscription->juragan->kos_name} disuspend karena langganan #{$subscription->id} menunggak.",
+                            subject: $subscription->juragan,
+                            properties: ['subscription_id' => $subscription->id, 'due_date' => $subscription->due_date],
+                        );
 
                         if ($subscription->juragan->contact_email) {
                             Mail::to($subscription->juragan->contact_email)->send(

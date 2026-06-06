@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Mail\TenantProvisionedMail;
+use App\Models\ActivityLog;
 use App\Models\Registration;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -73,6 +74,13 @@ class ProvisionTenantJob implements ShouldQueue
             );
 
             $reg->update(['status' => 'active']);
+
+            ActivityLog::record(
+                event: 'juragan.provisioned',
+                description: "Akun juragan {$juragan->kos_name} + {$quota} anak kos berhasil dibuat dari registrasi #{$reg->id}.",
+                subject: $reg,
+                properties: ['juragan_id' => $juragan->id, 'quota' => $quota, 'plan' => $reg->plan, 'slug' => $slug],
+            );
         });
     }
 

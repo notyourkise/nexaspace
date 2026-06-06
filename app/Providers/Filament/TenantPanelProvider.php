@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Tenant\Pages\EditProfile;
 use App\Filament\Tenant\Pages\Login;
+use App\Filament\Tenant\Widgets\QrisWidget;
 use App\Filament\Tenant\Widgets\TenantStatsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -57,6 +58,7 @@ class TenantPanelProvider extends PanelProvider
             )
             ->widgets([
                 TenantStatsWidget::class,
+                QrisWidget::class,
                 AccountWidget::class,
             ])
             ->middleware([

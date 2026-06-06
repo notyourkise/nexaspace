@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -145,6 +146,24 @@ class UserResource extends Resource
                 ->collapsible()
                 ->collapsed()
                 ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
+
+            // ── QRIS (developer or juragan) ──
+            Section::make('QRIS Pembayaran')
+                ->description('Upload kode QRIS statis juragan. Akan ditampilkan di portal anak kos dan invoice PDF sebagai opsi pembayaran.')
+                ->schema([
+                    FileUpload::make('qris_image')
+                        ->label('Gambar QRIS')
+                        ->disk('public')
+                        ->directory('qris')
+                        ->image()
+                        ->imagePreviewHeight('200')
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->maxSize(2048)
+                        ->helperText('Format: JPG, PNG, atau WebP. Maks 2 MB.'),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => $record?->qris_image === null)
+                ->visible(fn (Get $get): bool => $get('role') === 'juragan'),
         ]);
     }
 

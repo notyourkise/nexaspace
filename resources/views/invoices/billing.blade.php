@@ -145,10 +145,26 @@
         </div>
     </div>
 
+    {{-- QRIS (only when juragan has one and billing is not yet paid) --}}
+    @if ($juragan?->qris_image && $billing->status !== 'paid')
+    <div style="margin-bottom: 28px; display: flex; align-items: flex-start; gap: 20px; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; background: #fafafa;">
+        <img src="{{ public_path('storage/' . $juragan->qris_image) }}"
+             alt="QRIS" style="width: 100px; height: 100px; object-fit: contain; border-radius: 6px; border: 1px solid #ddd; background: #fff;">
+        <div style="font-size: 12px; color: #555;">
+            <p style="font-weight: 700; color: #1a1a1a; margin-bottom: 6px;">Bayar via QRIS</p>
+            <p style="margin-bottom: 4px;">Scan kode QR menggunakan m-banking atau dompet digital (GoPay, OVO, Dana, ShopeePay, dll.)</p>
+            <p style="color: #306D29; font-weight: 600;">Nominal: Rp {{ number_format($billing->amount, 0, ',', '.') }}</p>
+            @if($juragan->phone_number)
+            <p style="margin-top: 6px; color: #888;">Konfirmasi ke: {{ $juragan->phone_number }}</p>
+            @endif
+        </div>
+    </div>
+    @endif
+
     {{-- Footer --}}
     <div class="footer">
         <div class="footer-note">
-            Pembayaran dilakukan via transfer bank manual sesuai instruksi dari pengelola kos.
+            Pembayaran dilakukan via transfer bank atau QRIS sesuai instruksi dari pengelola kos.
             Hubungi pengelola jika ada pertanyaan mengenai tagihan ini.
         </div>
         <div class="footer-brand">

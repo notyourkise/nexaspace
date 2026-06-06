@@ -243,6 +243,7 @@ bank transfer. No payment gateway is used.
 | `mikrotik_user` | Nullable; per-juragan router username |
 | `mikrotik_pass` | Nullable; per-juragan router password |
 | `contact_email` | Nullable; juragan's real email (for notifications); populated from `registrations.email` on provisioning |
+| `qris_image` | Nullable; storage path to QRIS static QR code image uploaded by juragan |
 
 Relationships:
 
@@ -337,7 +338,11 @@ Relationship: `Subscription belongsTo User as juragan`
 | `app/Filament/Widgets/JuraganOnboardingWidget.php` | Checklist onboarding juragan; hidden when complete |
 | `app/Filament/Widgets/MikroTikStatusWidget.php` | Developer-only router health check; polls every 5 min |
 | `app/Filament/Widgets/RevenueChartWidget.php` | Line chart: revenue last 6 months; scoped per juragan |
-| `resources/views/invoices/billing.blade.php` | DomPDF invoice template: brand header, parties, table, status badge, total |
+| `resources/views/invoices/billing.blade.php` | DomPDF invoice template: brand header, parties, table, status badge, total, QRIS block |
+| `app/Models/ActivityLog.php` | Audit trail model; `record()` static helper; `UPDATED_AT = null`; `properties` cast → array |
+| `app/Filament/Resources/ActivityLogResource.php` | Developer-only read-only log viewer; badge-colored event column; filter per event type |
+| `app/Filament/Pages/RouterManagementPage.php` | Router management page; developer selects juragan; juragan sees own router; live DHCP lease table |
+| `app/Filament/Tenant/Widgets/QrisWidget.php` | Tenant portal widget: shows QRIS QR image + payment instructions when juragan has qris_image |
 | `app/Mail/BillingCreatedMail.php` | Email ke juragan saat tagihan bulanan digenerate |
 | `app/Mail/BillingReminderMail.php` | Email H-3 sebelum jatuh tempo tagihan anak kos |
 | `app/Mail/BillingThrottledMail.php` | Email ke juragan saat anak kos di-throttle |
@@ -502,6 +507,7 @@ accounts auto-generated to the package quota, credentials sent from
   plus manual paid/unpaid bulk actions.
 - ✅ **Phase 6 — Polish & tests (DONE):** juragan dashboard enhanced (kuota X/Y, throttle warning, revenue description); `JuraganQuotaWidget` baru (progress bar kuota + daftar kamar + warning kamar tanpa rate); `SubscriptionIsolationTest` 9 test baru; bug fix `suspended_at` tidak masuk `$fillable` + tidak di-cast sebagai datetime (menyebabkan `SuspendOverdueJuraganJob` dan `SubscriptionObserver` diam-diam gagal update). **76/76 test hijau.**
 - ✅ **Phase 7 — Production hardening & feature expansion (DONE):** email notifications (5 mail classes: BillingCreatedMail, BillingThrottledMail, BillingReminderMail, SubscriptionReminderMail, JuraganSuspendedMail) via `noreply@nexaspace.site`; CSV export (billing + subscription) dengan data isolation; tenant self-service profile page (`EditProfile`); onboarding widget (`JuraganOnboardingWidget`); MikroTik health widget (`MikroTikStatusWidget`); multi-router MikroTik per juragan (`mikrotik_host/port/user/pass` di tabel users, `MikroTikService::forJuragan()`); PDF invoice via dompdf (`InvoiceController`, template A4); revenue chart widget (`RevenueChartWidget` 6 bulan terakhir); test coverage 125/125 hijau.
+- ✅ **Phase 8 — Router visibility, QRIS payment, & audit trail (DONE):** Halaman manajemen router (`RouterManagementPage`) — developer pilih juragan, juragan lihat router sendiri, tabel DHCP lease real-time dari RouterOS; QRIS statis per juragan — kolom `qris_image`, upload di UserResource, `QrisWidget` di tenant portal, blok QRIS di invoice PDF; Activity Log / Audit Trail — tabel `activity_logs`, model `ActivityLog` dengan static `record()`, integrasi di `BillingObserver` / `SubscriptionObserver` / `SuspendOverdueJuraganJob` / `ProvisionTenantJob`, `ActivityLogResource` developer-only read-only di panel admin. Test coverage tetap 125/125 hijau.
 
 ### Isu Kritis — ✅ SUDAH DISELESAIKAN (Sesi 5 Juni 2026)
 
