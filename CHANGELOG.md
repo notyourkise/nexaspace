@@ -9,6 +9,69 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 11:00 WITA — Fix: Teks Modal "Bayar" Langganan Diperbarui ke Alur Auto-Lunas
+
+**Apa yang Diubah:**
+`app/Filament/Resources/SubscriptionResource.php` — `modalDescription` aksi "Bayar" diubah dari *"Tim kami akan mengkonfirmasi dalam 1×24 jam"* menjadi *"Status langganan akan langsung berubah menjadi Lunas"* agar konsisten dengan implementasi aktual (auto-lunas setelah upload).
+
+**Alasan Perubahan:**
+Teks deskripsi modal menyebutkan proses konfirmasi manual (1×24 jam), padahal implementasi aktual langsung mengubah status ke `paid` saat juragan submit bukti. Informasi yang salah bisa menyebabkan kebingungan pengguna.
+
+**Hasil Akhir:**
+Modal pembayaran juragan menampilkan deskripsi yang akurat sesuai alur sebenarnya.
+
+---
+
+### 10:30 WITA — Halaman Profil & Rekening untuk Developer
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Pages/DeveloperProfilePage.php` | Halaman baru khusus developer di admin panel: form profil (nama, HP, email kontak), Repeater rekening bank NexaSpace, upload QRIS, ganti password; hanya tampil untuk `role = developer` (`canAccess` + `shouldRegisterNavigation`); auto-discover via `discoverPages` |
+| `resources/views/filament/pages/developer-profile.blade.php` | View halaman: blok read-only info platform (email login, role, nama platform) di atas, form profil + rekening + QRIS, form ganti password |
+
+**Alasan Perubahan:**
+Developer tidak memiliki halaman untuk mengisi biodata, rekening bank NexaSpace, dan QRIS. Rekening bank developer penting karena dipakai di modal "Bayar" saat juragan melunasi tagihan langganan bulanan. Sebelumnya developer harus mengedit record user lewat `UserResource` yang tidak user-friendly.
+
+**Hasil Akhir:**
+Developer memiliki halaman **"Profil & Rekening NexaSpace"** di navigasi panel admin. Dari sini mereka bisa:
+- Mengubah nama, nomor HP/WA, email kontak
+- Menambah/mengubah/menghapus rekening bank NexaSpace (yang muncul di modal bayar juragan)
+- Upload QRIS statis NexaSpace
+- Ganti password
+125/125 test hijau.
+
+---
+
+### 10:00 WITA — Fitur Bayar Langganan: Juragan Upload Bukti + Auto-Lunas ke NexaSpace
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `database/migrations/2026_06_07_005201_add_payment_receipt_to_subscriptions_table.php` | Kolom baru `payment_receipt` (string, nullable) pada tabel `subscriptions` |
+| `app/Models/Subscription.php` | `payment_receipt` ditambahkan ke `#[Fillable]` |
+| `app/Filament/Resources/SubscriptionResource.php` | (1) Aksi **"Bayar"** — muncul untuk juragan saat status `unpaid`/`overdue` dan belum ada bukti; modal berisi dropdown rekening bank developer (NexaSpace) + upload bukti transfer; setelah submit, bukti disimpan ke `payment_receipt` dan status langsung diubah ke `paid` (auto-lunas). `SubscriptionObserver` otomatis menghapus `suspended_at` jika juragan sedang disuspend. (2) Aksi **"Lihat Bukti"** — muncul untuk juragan setelah upload, membuka file di tab baru. (3) Kolom `IconColumn payment_receipt` — ikon hijau jika ada bukti, abu jika belum; dapat diklik developer untuk melihat file. |
+
+**Alasan Perubahan:**
+Juragan belum memiliki cara untuk menyampaikan bukti pembayaran langganan NexaSpace langsung dari panel. Alur auto-lunas dipilih agar juragan langsung mendapat akses kembali tanpa menunggu konfirmasi manual developer — developer tetap bisa melihat bukti melalui ikon di kolom tabel.
+
+**Alur lengkap:**
+1. Juragan membuka `/admin/subscriptions`
+2. Klik tombol **"Bayar"** pada baris subscription `unpaid` atau `overdue`
+3. Modal muncul: pilih rekening bank NexaSpace (dari `bank_accounts` developer) + upload bukti transfer (JPG/PNG/WebP/PDF, maks 3MB)
+4. Submit → bukti tersimpan, status langsung `paid`, `SubscriptionObserver` menghapus `suspended_at`
+5. Tombol "Bayar" berubah menjadi **"Lihat Bukti"** (buka file di tab baru)
+6. Developer melihat ikon hijau di kolom Bukti → dapat membuka file untuk verifikasi
+
+**Catatan:** Rekening bank NexaSpace diambil dari field `bank_accounts` milik user developer. Jika belum diisi, hanya field upload yang muncul.
+
+**Hasil Akhir:**
+Juragan memiliki alur pembayaran self-service yang jelas di panel admin. Upload bukti → status langsung lunas → akses panel dipulihkan otomatis. 125/125 test hijau.
+
+---
+
 ### 09:30 WITA — Bugfix: MySQL ONLY_FULL_GROUP_BY Error pada Filter Bulan Subscriptions
 
 **Apa yang Diubah:**

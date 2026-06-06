@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['juragan_id', 'amount', 'subscription_month', 'due_date', 'status'])]
+#[Fillable(['juragan_id', 'amount', 'subscription_month', 'due_date', 'status', 'payment_receipt'])]
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */

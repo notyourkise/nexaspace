@@ -4,17 +4,23 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SubscriptionResource\Pages;
 use App\Models\Subscription;
+use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class SubscriptionResource extends Resource
 {
@@ -88,6 +94,17 @@ class SubscriptionResource extends Resource
                         'overdue' => 'Menunggak',
                         default  => $state,
                     }),
+
+                IconColumn::make('payment_receipt')
+                    ->label('Bukti')
+                    ->icon(fn ($state) => $state ? 'heroicon-o-photo' : 'heroicon-o-minus')
+                    ->color(fn ($state) => $state ? 'success' : 'gray')
+                    ->tooltip(fn ($state) => $state ? 'Bukti transfer sudah diupload' : 'Belum ada bukti')
+                    ->url(fn (Subscription $record): ?string => $record->payment_receipt
+                        ? Storage::url($record->payment_receipt)
+                        : null
+                    )
+                    ->openUrlInNewTab(),
             ]))
             ->defaultSort('subscription_month', 'desc')
             ->filters(array_filter([
@@ -140,7 +157,78 @@ class SubscriptionResource extends Resource
                             : $query
                     ),
             ]))
-            ->actions([])
+            ->actions([
+                Action::make('bayar')
+                    ->label('Bayar')
+                    ->icon('heroicon-o-credit-card')
+                    ->color('primary')
+                    ->modalHeading('Pembayaran Langganan NexaSpace')
+                    ->modalDescription('Transfer ke rekening NexaSpace sesuai nominal, lalu upload bukti transfer di bawah. Status langganan akan langsung berubah menjadi Lunas.')
+                    ->form(function (): array {
+                        $developer    = User::where('role', 'developer')->first();
+                        $bankAccounts = $developer?->bank_accounts ?? [];
+
+                        $fields = [];
+
+                        if (! empty($bankAccounts)) {
+                            $bankOptions = collect($bankAccounts)
+                                ->mapWithKeys(fn ($bank, $i) => [
+                                    $i => "{$bank['bank_name']} — {$bank['account_number']} a.n. {$bank['account_name']}",
+                                ])
+                                ->all();
+
+                            $fields[] = Select::make('bank_index')
+                                ->label('Transfer ke Rekening')
+                                ->options($bankOptions)
+                                ->required()
+                                ->helperText('Pilih bank yang kamu gunakan untuk mentransfer.')
+                                ->native(false);
+                        }
+
+                        $fields[] = FileUpload::make('payment_receipt')
+                            ->label('Bukti Transfer')
+                            ->disk('public')
+                            ->directory('subscription-receipts')
+                            ->image()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+                            ->maxSize(3072)
+                            ->required()
+                            ->helperText('Format: JPG, PNG, WebP, atau PDF. Maks 3 MB.');
+
+                        return $fields;
+                    })
+                    ->action(function (Subscription $record, array $data): void {
+                        $record->update([
+                            'payment_receipt' => $data['payment_receipt'],
+                            'status'          => 'paid',
+                        ]);
+
+                        Notification::make()
+                            ->title('Pembayaran langganan berhasil!')
+                            ->body('Langganan ' . \Carbon\Carbon::parse($record->subscription_month)->locale('id')->isoFormat('MMMM Y') . ' telah lunas.')
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (Subscription $record): bool =>
+                        (auth()->user()?->isJuragan() ?? false)
+                        && in_array($record->status, ['unpaid', 'overdue'])
+                        && $record->payment_receipt === null
+                    ),
+
+                Action::make('lihat_bukti')
+                    ->label('Lihat Bukti')
+                    ->icon('heroicon-o-photo')
+                    ->color('gray')
+                    ->url(fn (Subscription $record): ?string => $record->payment_receipt
+                        ? Storage::url($record->payment_receipt)
+                        : null
+                    )
+                    ->openUrlInNewTab()
+                    ->visible(fn (Subscription $record): bool =>
+                        (auth()->user()?->isJuragan() ?? false)
+                        && $record->payment_receipt !== null
+                    ),
+            ])
             ->bulkActions(array_filter([
                 $isDeveloper
                     ? BulkAction::make('mark_paid')
