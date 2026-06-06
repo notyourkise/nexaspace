@@ -9,6 +9,32 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 02:30 WITA — Revisi: Simulasi Pembayaran Anak Kos + Format Amount + Fix Nama Juragan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `database/migrations/2026_06_06_203015_add_bank_accounts_to_users_table.php` | Kolom `bank_accounts` (JSON nullable) ditambahkan ke tabel `users` |
+| `app/Models/User.php` | `bank_accounts` masuk `$fillable` + cast sebagai `array` |
+| `app/Filament/Resources/UserResource.php` | Tambah seksi **"Rekening Bank"** (Repeater) untuk juragan: field `bank_name`, `account_number`, `account_name`; tampil/collapsible saat `role === juragan` |
+| `app/Filament/Tenant/Resources/BillingResource.php` | Ganti action `Upload Receipt` dengan action **"Bayar"** — modal berisi dropdown rekening bank juragan + upload bukti transfer; setelah submit, status tagihan langsung menjadi `paid` dan notifikasi sukses muncul |
+| `app/Filament/Resources/BillingResource.php` | Field `amount` di form create/edit sekarang auto-format dengan titik ribuan (Alpine.js `x-on:input`); `dehydrateStateUsing` membersihkan titik sebelum simpan ke DB |
+| DB (tinker) | Nama `owner@kos-reb.com` diubah dari "haikal ariadma" → **"Pemilik Kos Reb"**; 3 rekening bank ditambahkan (BCA, BRI, GoPay/OVO) untuk simulasi pembayaran |
+
+**Alasan Perubahan:**
+1. Anak kos tidak bisa melakukan pembayaran langsung — hanya ada upload receipt tanpa alur bayar yang jelas.
+2. Input `amount` di form admin tidak ada auto-format sehingga angka besar sulit dibaca saat input.
+3. Akun juragan `owner@kos-reb.com` terdaftar dengan nama "haikal ariadma" (nama developer) karena di-provision manual menggunakan data developer.
+
+**Hasil Akhir:**
+- Anak kos kini melihat tombol **"Bayar"** di tabel tagihan; klik → modal muncul dengan dropdown bank juragan dan upload bukti → submit → status langsung `paid`.
+- Input nominal di form admin admin auto-menambahkan titik saat mengetik (1200000 → 1.200.000).
+- Juragan `owner@kos-reb.com` kini tampil sebagai "Pemilik Kos Reb" di panel.
+- 3 rekening bank tersedia untuk kos-reb sebagai data simulasi.
+
+---
+
 ### 01:30 WITA — Opsi B: Manajemen Router MikroTik dari Panel Admin
 
 **Apa yang Diubah:**

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -163,6 +164,40 @@ class UserResource extends Resource
                 ])
                 ->collapsible()
                 ->collapsed(fn ($record) => $record?->qris_image === null)
+                ->visible(fn (Get $get): bool => $get('role') === 'juragan'),
+
+            // ── Rekening bank (juragan) ──
+            Section::make('Rekening Bank')
+                ->description('Daftar rekening tujuan transfer untuk anak kos. Akan muncul sebagai pilihan saat anak kos melakukan pembayaran tagihan.')
+                ->schema([
+                    Repeater::make('bank_accounts')
+                        ->label('')
+                        ->schema([
+                            TextInput::make('bank_name')
+                                ->label('Nama Bank')
+                                ->placeholder('Contoh: BCA, BRI, Mandiri')
+                                ->required()
+                                ->maxLength(50),
+
+                            TextInput::make('account_number')
+                                ->label('Nomor Rekening')
+                                ->placeholder('Contoh: 1234567890')
+                                ->required()
+                                ->maxLength(30),
+
+                            TextInput::make('account_name')
+                                ->label('Atas Nama')
+                                ->placeholder('Nama pemilik rekening')
+                                ->required()
+                                ->maxLength(100),
+                        ])
+                        ->columns(3)
+                        ->addActionLabel('+ Tambah Rekening')
+                        ->defaultItems(0)
+                        ->reorderable(false),
+                ])
+                ->collapsible()
+                ->collapsed(fn ($record) => empty($record?->bank_accounts))
                 ->visible(fn (Get $get): bool => $get('role') === 'juragan'),
         ]);
     }

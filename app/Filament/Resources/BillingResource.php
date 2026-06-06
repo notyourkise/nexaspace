@@ -44,10 +44,17 @@ class BillingResource extends Resource
                 ->required(),
 
             TextInput::make('amount')
-                ->numeric()
-                ->required()
                 ->prefix('Rp')
-                ->minValue(0),
+                ->required()
+                ->placeholder('0')
+                ->inputMode('numeric')
+                ->extraInputAttributes([
+                    'x-on:input' => '$el.value = $el.value.replace(/[^0-9]/g,"").replace(/\B(?=(\d{3})+(?!\d))/g,".")',
+                    'x-on:focus' => '$el.value = $el.value.replace(/[^0-9]/g,"").replace(/\B(?=(\d{3})+(?!\d))/g,".")',
+                ])
+                ->formatStateUsing(fn ($state) => $state ? number_format((int) $state, 0, ',', '.') : '')
+                ->dehydrateStateUsing(fn ($state) => (int) preg_replace('/[^0-9]/', '', (string) $state))
+                ->rules(['required', 'integer', 'min:0']),
 
             DatePicker::make('billing_month')
                 ->required()
