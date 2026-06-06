@@ -4,297 +4,271 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Daftar Paket {{ strtoupper($selectedPlan) }} - NexaSpace</title>
+    <title>Daftar Paket {{ strtoupper($selectedPlan) }} — NexaSpace</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        body { font-family: 'Inter', 'Segoe UI', sans-serif; }
-        .field-error { color: #dc2626; font-size: 0.75rem; margin-top: 0.35rem; display: none; }
-        .input-error { border-color: #dc2626 !important; }
-        .form-field {
-            width: 100%;
-            border: 1px solid #d9dee7;
-            border-radius: 0.75rem;
-            background: #fff;
-            padding: 0.95rem 1rem;
-            font-size: 0.95rem;
-            color: #111827;
-            transition: border-color .18s ease, box-shadow .18s ease;
-        }
-        .form-field:focus {
-            outline: none;
-            border-color: #26772c;
-            box-shadow: 0 0 0 4px rgba(38, 119, 44, .11);
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; background: #0a0a0a; color: #fff; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+        .field { width: 100%; background: #111; border: 1px solid #242424; border-radius: 6px; padding: 10px 14px; font-size: 13.5px; color: #fff; outline: none; transition: border-color .15s, box-shadow .15s; -webkit-appearance: none; }
+        .field:focus { border-color: rgba(255,255,255,.35); box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+        .field::placeholder { color: #3a3a3a; }
+        .field.err { border-color: #ef4444; }
+        .field-err { color: #f87171; font-size: 11px; margin-top: 4px; display: none; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
     </style>
 </head>
-<body class="min-h-screen bg-[#fbfcfb] text-[#101827]">
-    <nav class="border-b border-gray-200 bg-white/95 px-5 py-5">
-        <div class="mx-auto flex max-w-7xl items-center justify-between">
-            <a href="{{ route('home') }}" class="flex items-center gap-3 text-sm font-semibold text-gray-600 transition-colors hover:text-[#1f6f29]">
-                <svg class="h-5 w-5 text-[#1f6f29]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
-                </svg>
-                Kembali ke Beranda
+<body>
+
+{{-- ── Navbar ─────────────────────────────────────────────────────────── --}}
+<nav style="height:52px; border-bottom:1px solid #1a1a1a; padding:0 40px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+    <a href="{{ route('home') }}" style="display:flex;align-items:center;gap:8px;color:#666;font-size:13px;font-weight:500;text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#666'">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>
+        </svg>
+        Kembali ke Beranda
+    </a>
+    <span style="color:#fff;font-weight:700;font-size:17px;letter-spacing:-.3px;">NexaSpace</span>
+</nav>
+
+{{-- ── Main grid ───────────────────────────────────────────────────────── --}}
+<div style="height:calc(100vh - 52px); display:grid; grid-template-columns:360px 1fr; overflow:hidden;">
+
+    {{-- ── LEFT: Plan summary ──────────────────────────────────────────── --}}
+    <aside style="border-right:1px solid #1a1a1a; padding:32px 36px; overflow-y:auto; display:flex; flex-direction:column; gap:0;">
+
+        <p style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#555;">Paket yang Dipilih</p>
+
+        <h1 style="margin-top:12px;font-size:52px;font-weight:900;line-height:1;letter-spacing:-1px;color:#fff;">{{ $planData['label'] }}</h1>
+
+        <div style="margin-top:12px;display:flex;align-items:flex-end;gap:8px;">
+            <span style="font-size:28px;font-weight:900;color:#fff;">{{ $planData['price'] }}</span>
+            <span style="font-size:13px;color:#555;padding-bottom:3px;">/ {{ $planData['period'] }}</span>
+        </div>
+
+        <div style="margin-top:16px;display:flex;align-items:center;gap:10px;background:#111;border:1px solid #222;border-radius:8px;padding:10px 14px;">
+            <svg width="14" height="14" fill="none" stroke="#666" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.125 1.125 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"/>
+            </svg>
+            <span style="font-size:13px;font-weight:600;color:#ddd;">{{ $planData['quota'] }}</span>
+        </div>
+
+        <div style="height:1px;background:#1a1a1a;margin:20px 0;"></div>
+
+        <p style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#555;">Yang Anda Dapatkan</p>
+
+        <ul style="margin-top:14px;display:flex;flex-direction:column;gap:10px;list-style:none;">
+            @foreach($planData['features'] as $feature)
+            <li style="display:flex;align-items:center;gap:10px;font-size:13px;color:#bbb;">
+                <span style="width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="10" height="10" fill="none" stroke="#000" viewBox="0 0 24 24" stroke-width="3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                    </svg>
+                </span>
+                {{ $feature }}
+            </li>
+            @endforeach
+        </ul>
+
+        <div style="margin-top:16px;display:flex;align-items:flex-start;gap:10px;background:#111;border:1px solid #222;border-radius:8px;padding:12px 14px;">
+            <svg width="14" height="14" fill="none" stroke="#555" viewBox="0 0 24 24" stroke-width="2" style="flex-shrink:0;margin-top:1px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15.75 9.75M12 3.75l7.5 3v5.25c0 4.125-2.7 7.875-7.5 9-4.8-1.125-7.5-4.875-7.5-9V6.75l7.5-3z"/>
+            </svg>
+            <p style="font-size:12px;color:#555;line-height:1.6;">Semua paket sudah termasuk onboarding, migrasi data, dan dukungan WhatsApp. Tidak ada biaya tersembunyi.</p>
+        </div>
+
+        <div style="height:1px;background:#1a1a1a;margin:20px 0;"></div>
+
+        <p style="font-size:12px;color:#555;font-weight:500;">Ganti paket:</p>
+        <div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+            @foreach(['lite' => 'LITE', 'pro' => 'PRO', 'custom' => 'CUSTOM'] as $key => $lbl)
+            <a href="{{ route('daftar', $key) }}"
+               style="display:block;text-align:center;padding:9px;font-size:11px;font-weight:800;border-radius:6px;text-decoration:none;border:1px solid;transition:all .15s;
+                      {{ $selectedPlan === $key ? 'background:#fff;color:#000;border-color:#fff;' : 'background:transparent;color:#555;border-color:#242424;' }}"
+               onmouseover="{{ $selectedPlan !== $key ? "this.style.color='#ddd';this.style.borderColor='#555';" : '' }}"
+               onmouseout="{{ $selectedPlan !== $key ? "this.style.color='#555';this.style.borderColor='#242424';" : '' }}">
+                {{ $lbl }}
             </a>
-            <span class="text-2xl font-extrabold tracking-tight text-[#14651f]">NexaSpace</span>
+            @endforeach
         </div>
-    </nav>
 
-    <main class="mx-auto max-w-7xl px-5 py-10 lg:py-14">
-        <div class="grid grid-cols-1 gap-10 lg:grid-cols-[470px_1fr] lg:gap-20">
-            <aside class="lg:sticky lg:top-10 lg:self-start">
-                @if($planData['highlight'])
-                    <div class="mb-7 inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.16em] text-amber-600">
-                        <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                            <path d="M10 1.75l2.28 4.62 5.1.74-3.69 3.59.87 5.08L10 13.38l-4.56 2.4.87-5.08-3.69-3.59 5.1-.74L10 1.75z"/>
-                        </svg>
-                        Paling Laris
-                    </div>
-                @endif
+    </aside>
 
-                <p class="text-xs font-extrabold uppercase tracking-[0.22em] text-[#176523]">Paket yang Dipilih</p>
-                <h1 class="mt-5 text-5xl font-black tracking-tight text-[#206f29]">{{ $planData['label'] }}</h1>
+    {{-- ── RIGHT: Form ─────────────────────────────────────────────────── --}}
+    <section style="padding:32px 52px;overflow-y:auto;">
 
-                <div class="mt-5 flex flex-wrap items-end gap-3">
-                    <span class="text-4xl font-black tracking-tight text-[#101827] sm:text-5xl">{{ $planData['price'] }}</span>
-                    <span class="pb-2 text-base font-semibold text-gray-600">/ {{ $planData['period'] }}</span>
-                </div>
+        <h2 style="font-size:30px;font-weight:900;letter-spacing:-.5px;color:#fff;">Lengkapi Data Pendaftaran</h2>
+        <p style="margin-top:6px;font-size:13px;color:#555;line-height:1.5;">
+            @if($selectedPlan === 'custom')
+                Isi form berikut dan tim kami akan menghubungi Anda via WhatsApp.
+            @else
+                Isi form berikut, lalu lanjutkan ke instruksi transfer bulan pertama.
+            @endif
+        </p>
 
-                <div class="mt-7 flex items-center gap-3 rounded-lg bg-gradient-to-r from-[#edf8f0] to-[#f8fbf8] px-4 py-4 text-[#176523]">
-                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955a1.125 1.125 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"/>
-                    </svg>
-                    <span class="text-sm font-extrabold">{{ $planData['quota'] }}</span>
-                </div>
-
-                <div class="my-9 h-px bg-gray-200"></div>
-
-                <p class="text-xs font-extrabold uppercase tracking-[0.22em] text-[#176523]">Yang Anda Dapatkan</p>
-                <ul class="mt-6 space-y-4">
-                    @foreach($planData['features'] as $feature)
-                        <li class="flex items-start gap-4 text-base font-medium text-gray-700">
-                            <span class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#26772c]">
-                                <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
-                                </svg>
-                            </span>
-                            {{ $feature }}
-                        </li>
-                    @endforeach
-                </ul>
-
-                <div class="mt-9 flex gap-4 rounded-lg bg-[#edf8f0] px-5 py-5 text-[#176523]">
-                    <svg class="mt-0.5 h-6 w-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15.75 9.75M12 3.75l7.5 3v5.25c0 4.125-2.7 7.875-7.5 9-4.8-1.125-7.5-4.875-7.5-9V6.75l7.5-3z"/>
-                    </svg>
-                    <p class="text-sm font-medium leading-6">
-                        Semua paket sudah termasuk onboarding, migrasi data, dan dukungan WhatsApp. Tidak ada biaya tersembunyi.
-                    </p>
-                </div>
-
-                <div class="my-9 h-px bg-gray-200"></div>
-
-                <p class="text-sm font-medium text-gray-600">Ganti paket:</p>
-                <div class="mt-4 grid grid-cols-3 gap-3">
-                    @foreach(['lite' => 'LITE', 'pro' => 'PRO', 'custom' => 'CUSTOM'] as $key => $label)
-                        <a href="{{ route('daftar', $key) }}"
-                           class="rounded-lg border px-4 py-3 text-center text-sm font-extrabold transition
-                                  {{ $selectedPlan === $key
-                                      ? 'border-[#1f6f29] bg-gradient-to-r from-[#1d6d27] to-[#2f842e] text-white shadow-lg shadow-green-900/15'
-                                      : 'border-gray-300 bg-white text-gray-700 hover:border-[#1f6f29] hover:text-[#1f6f29]' }}">
-                            {{ $label }}
-                        </a>
-                    @endforeach
-                </div>
-            </aside>
-
-            <section class="pt-0 lg:pt-2">
-                <div class="mx-auto max-w-3xl">
-                    <h2 class="text-3xl font-black tracking-tight text-[#101827] sm:text-4xl">Lengkapi Data Pendaftaran</h2>
-                    <p class="mt-4 text-base text-gray-600">
-                        @if($selectedPlan === 'custom')
-                            Isi form berikut dan tim kami akan menghubungi Anda via WhatsApp.
-                        @else
-                            Isi form berikut, lalu lanjutkan ke instruksi transfer bulan pertama.
-                        @endif
-                    </p>
-
-                    <div id="alert-error" class="mt-6 hidden rounded-xl border border-red-200 bg-red-50 p-4">
-                        <p class="text-sm font-semibold text-red-700">Terjadi kesalahan. Periksa kembali isian Anda.</p>
-                    </div>
-
-                    <form id="reg-form" class="mt-8" novalidate>
-                        @csrf
-
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                            <div>
-                                <label class="mb-2 block text-sm font-extrabold text-gray-800">Nama Anda <span class="text-red-500">*</span></label>
-                                <input type="text" name="name" id="name" placeholder="Contoh: Pak Budi" class="form-field">
-                                <p class="field-error" id="err-name"></p>
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-extrabold text-gray-800">Nama Kos <span class="text-red-500">*</span></label>
-                                <input type="text" name="kos_name" id="kos_name" placeholder="Contoh: Kos Mutiara" class="form-field">
-                                <p class="field-error" id="err-kos_name"></p>
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-extrabold text-gray-800">Email <span class="text-red-500">*</span></label>
-                                <input type="email" name="email" id="email" placeholder="email@anda.com" class="form-field">
-                                <p class="field-error" id="err-email"></p>
-                            </div>
-
-                            <div>
-                                <label class="mb-2 block text-sm font-extrabold text-gray-800">Nomor WhatsApp <span class="text-red-500">*</span></label>
-                                <input type="tel" name="phone" id="phone" placeholder="08xxxxxxxxxx" class="form-field">
-                                <p class="field-error" id="err-phone"></p>
-                            </div>
-                        </div>
-
-                        <div class="mt-6">
-                            <label class="mb-2 block text-sm font-extrabold text-gray-800">Jumlah Kamar <span class="text-red-500">*</span></label>
-                            <input type="number" name="room_count" id="room_count" placeholder="Contoh: 20" min="1" max="999" class="form-field">
-                            <p class="field-error" id="err-room_count"></p>
-                        </div>
-
-                        <div class="mt-6">
-                            <label class="mb-2 block text-sm font-extrabold text-gray-800">
-                                Pesan / Catatan <span class="font-medium text-gray-500">(opsional)</span>
-                            </label>
-                            <textarea name="message" id="message" rows="5" placeholder="Tuliskan pertanyaan atau kebutuhan khusus Anda..." class="form-field resize-y"></textarea>
-                            <p class="field-error" id="err-message"></p>
-                        </div>
-
-                        <input type="hidden" name="plan" value="{{ $selectedPlan }}">
-
-                        <div class="mt-9">
-                            <button type="submit" id="submit-btn"
-                                    class="w-full rounded-lg bg-gradient-to-r from-[#1d6d27] to-[#2f842e] px-5 py-4 text-base font-extrabold text-white shadow-xl shadow-green-900/15 transition hover:from-[#15571e] hover:to-[#216b25] disabled:cursor-not-allowed disabled:opacity-60">
-                                @if($selectedPlan === 'custom')
-                                    <span id="btn-text">Hubungi Tim NexaSpace via WhatsApp</span>
-                                    <span id="btn-loading" class="hidden">Memproses...</span>
-                                @else
-                                    <span id="btn-text">Daftar & Bayar Sekarang</span>
-                                    <span id="btn-loading" class="hidden">Menyiapkan pembayaran...</span>
-                                @endif
-                            </button>
-
-                            <p class="mt-5 flex items-center justify-center gap-2 text-center text-sm font-medium text-gray-500">
-                                <svg class="h-5 w-5 text-[#1f6f29]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 00-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v6.75a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z"/>
-                                </svg>
-                                @if($selectedPlan === 'custom')
-                                    Konsultasi paket custom melalui WhatsApp NexaSpace
-                                @else
-                                    Pembayaran manual via transfer bank, lalu konfirmasi melalui WhatsApp
-                                @endif
-                            </p>
-                        </div>
-                    </form>
-                </div>
-            </section>
+        <div id="alert-error" style="display:none;margin-top:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 16px;">
+            <p style="font-size:13px;color:#f87171;">Terjadi kesalahan. Periksa kembali isian Anda.</p>
         </div>
-    </main>
 
-    <footer class="mt-8 bg-gradient-to-r from-[#145c20] via-[#1d732b] to-[#0d4f1a] px-5 py-8 text-white">
-        <div class="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-center">
-            <div class="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-white/12">
-                <svg class="h-9 w-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l2.25 2.25L15.75 9.75M12 3.75l7.5 3v5.25c0 4.125-2.7 7.875-7.5 9-4.8-1.125-7.5-4.875-7.5-9V6.75l7.5-3z"/>
-                </svg>
+        <form id="reg-form" style="margin-top:22px;" novalidate>
+            @csrf
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">NAMA ANDA <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="name" id="name" placeholder="Contoh: Pak Budi" class="field">
+                    <p class="field-err" id="err-name"></p>
+                </div>
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">NAMA KOS <span style="color:#ef4444;">*</span></label>
+                    <input type="text" name="kos_name" id="kos_name" placeholder="Contoh: Kos Mutiara" class="field">
+                    <p class="field-err" id="err-kos_name"></p>
+                </div>
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">EMAIL <span style="color:#ef4444;">*</span></label>
+                    <input type="email" name="email" id="email" placeholder="email@anda.com" class="field">
+                    <p class="field-err" id="err-email"></p>
+                </div>
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">NOMOR WHATSAPP <span style="color:#ef4444;">*</span></label>
+                    <input type="tel" name="phone" id="phone" placeholder="08xxxxxxxxxx" class="field">
+                    <p class="field-err" id="err-phone"></p>
+                </div>
             </div>
-            <div>
-                <p class="text-lg font-extrabold">Aman & Terpercaya</p>
-                <p class="mt-1 max-w-3xl text-sm leading-6 text-white/80">
-                    Bergabung dengan pemilik kos yang mempercayakan manajemen kosnya bersama NexaSpace.
+
+            <div style="margin-top:16px;">
+                <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">
+                    JUMLAH KAMAR <span style="color:#ef4444;">*</span>
+                    @if($planData['max_rooms'] < 999)
+                        <span style="color:#444;font-weight:400;font-size:11px;letter-spacing:0;text-transform:none;"> — maks. {{ $planData['max_rooms'] }} kamar</span>
+                    @endif
+                </label>
+                <input type="number" name="room_count" id="room_count"
+                       placeholder="Contoh: 20"
+                       min="1" max="{{ $planData['max_rooms'] }}"
+                       class="field">
+                <p class="field-err" id="err-room_count"></p>
+            </div>
+
+            <div style="margin-top:16px;">
+                <label style="display:block;font-size:11px;font-weight:700;color:#888;margin-bottom:6px;letter-spacing:.05em;">
+                    PESAN / CATATAN <span style="color:#444;font-weight:400;font-size:11px;letter-spacing:0;text-transform:none;">(opsional)</span>
+                </label>
+                <textarea name="message" id="message" rows="3"
+                          placeholder="Tuliskan pertanyaan atau kebutuhan khusus Anda..."
+                          class="field" style="resize:none;"></textarea>
+                <p class="field-err" id="err-message"></p>
+            </div>
+
+            <input type="hidden" name="plan" value="{{ $selectedPlan }}">
+
+            <div style="margin-top:22px;">
+                <button type="submit" id="submit-btn"
+                        style="width:100%;background:#fff;color:#000;border:none;border-radius:8px;padding:14px 20px;font-size:14px;font-weight:800;cursor:pointer;transition:background .15s,opacity .15s;letter-spacing:-.1px;">
+                    <span id="btn-text">
+                        @if($selectedPlan === 'custom')
+                            Hubungi Tim NexaSpace via WhatsApp
+                        @else
+                            Daftar &amp; Bayar Sekarang
+                        @endif
+                    </span>
+                    <span id="btn-loading" style="display:none;">Memproses...</span>
+                </button>
+
+                <p style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:#444;">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 00-9 0v3.75M6.75 10.5h10.5a1.5 1.5 0 011.5 1.5v6.75a1.5 1.5 0 01-1.5 1.5H6.75a1.5 1.5 0 01-1.5-1.5V12a1.5 1.5 0 011.5-1.5z"/>
+                    </svg>
+                    @if($selectedPlan === 'custom')
+                        Konsultasi paket custom melalui WhatsApp NexaSpace
+                    @else
+                        Pembayaran manual via transfer bank, lalu konfirmasi melalui WhatsApp
+                    @endif
                 </p>
             </div>
-        </div>
-    </footer>
+        </form>
+    </section>
 
-    <script>
-        const PLAN = '{{ $selectedPlan }}';
-        const REGISTER_URL = '{{ route("registration.store") }}';
+</div>
 
-        function clearErrors() {
-            document.querySelectorAll('.field-error').forEach(el => {
-                el.style.display = 'none';
-                el.textContent = '';
-            });
-            document.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
-            document.getElementById('alert-error').classList.add('hidden');
-        }
+<script>
+const PLAN      = '{{ $selectedPlan }}';
+const MAX_ROOMS = {{ $planData['max_rooms'] }};
+const REGISTER_URL = '{{ route("registration.store") }}';
 
-        function showFieldError(field, msg) {
-            const el = document.getElementById('err-' + field);
-            const input = document.getElementById(field) || document.querySelector('[name="' + field + '"]');
-            if (el) {
-                el.textContent = msg;
-                el.style.display = 'block';
-            }
-            if (input) {
-                input.classList.add('input-error');
-            }
-        }
+const btn      = document.getElementById('submit-btn');
+const btnText  = document.getElementById('btn-text');
+const btnLoad  = document.getElementById('btn-loading');
+const alertEl  = document.getElementById('alert-error');
 
-        function setLoading(loading) {
-            const btn = document.getElementById('submit-btn');
-            const text = document.getElementById('btn-text');
-            const load = document.getElementById('btn-loading');
-            btn.disabled = loading;
-            text.classList.toggle('hidden', loading);
-            load.classList.toggle('hidden', !loading);
-        }
+btn.addEventListener('mouseover', () => { if (!btn.disabled) btn.style.background = '#e5e5e5'; });
+btn.addEventListener('mouseout',  () => { if (!btn.disabled) btn.style.background = '#fff'; });
 
-        document.getElementById('reg-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            clearErrors();
-            setLoading(true);
+function clearErrors() {
+    document.querySelectorAll('.field-err').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+    document.querySelectorAll('.field.err').forEach(el => el.classList.remove('err'));
+    alertEl.style.display = 'none';
+}
 
-            const formData = new FormData(this);
-            const body = Object.fromEntries(formData.entries());
+function showErr(field, msg) {
+    const errEl = document.getElementById('err-' + field);
+    const input = document.getElementById(field) || document.querySelector('[name="' + field + '"]');
+    if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+    if (input)  input.classList.add('err');
+}
 
-            try {
-                const res = await fetch(REGISTER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    },
-                    body: JSON.stringify(body),
-                });
+function setLoading(on) {
+    btn.disabled      = on;
+    btn.style.opacity = on ? '.55' : '1';
+    btn.style.cursor  = on ? 'not-allowed' : 'pointer';
+    btnText.style.display = on ? 'none' : '';
+    btnLoad.style.display = on ? '' : 'none';
+}
 
-                const data = await res.json();
+// Clamp room_count on input
+document.getElementById('room_count').addEventListener('input', function () {
+    if (PLAN !== 'custom' && this.value && parseInt(this.value) > MAX_ROOMS) this.value = MAX_ROOMS;
+});
 
-                if (res.status === 422 && data.errors) {
-                    setLoading(false);
-                    for (const [field, messages] of Object.entries(data.errors)) {
-                        showFieldError(field, messages[0]);
-                    }
-                    return;
-                }
+document.getElementById('reg-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    clearErrors();
 
-                if (!res.ok) {
-                    throw new Error('Server error');
-                }
+    const roomVal = parseInt(document.getElementById('room_count').value);
+    if (PLAN !== 'custom' && roomVal > MAX_ROOMS) {
+        showErr('room_count', `Paket ${PLAN.toUpperCase()} hanya mendukung maks. ${MAX_ROOMS} kamar.`);
+        return;
+    }
 
-                if (PLAN === 'custom' || data.wa_url) {
-                    window.location.href = data.wa_url;
-                    return;
-                }
+    setLoading(true);
+    const body = Object.fromEntries(new FormData(this).entries());
 
-                if (data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    throw new Error('No payment URL received');
-                }
-            } catch (err) {
-                setLoading(false);
-                document.getElementById('alert-error').classList.remove('hidden');
-            }
+    try {
+        const res  = await fetch(REGISTER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+            body: JSON.stringify(body),
         });
-    </script>
+        const data = await res.json();
+
+        if (res.status === 422 && data.errors) {
+            setLoading(false);
+            for (const [f, msgs] of Object.entries(data.errors)) showErr(f, msgs[0]);
+            return;
+        }
+        if (!res.ok) throw new Error('Server error');
+
+        window.location.href = data.wa_url || data.payment_url;
+    } catch {
+        setLoading(false);
+        alertEl.style.display = 'block';
+    }
+});
+</script>
 </body>
 </html>

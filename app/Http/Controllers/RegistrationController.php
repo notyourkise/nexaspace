@@ -26,14 +26,23 @@ class RegistrationController extends Controller
     /** Store a new registration and return a manual payment URL (or WhatsApp URL for CUSTOM). */
     public function store(Request $request): JsonResponse
     {
+        $plan    = $request->input('plan', 'pro');
+        $maxRoom = match ($plan) {
+            'lite'  => 20,
+            'pro'   => 40,
+            default => 999,
+        };
+
         $data = $request->validate([
             'name'       => ['required', 'string', 'max:255'],
             'kos_name'   => ['required', 'string', 'max:255'],
             'email'      => ['required', 'email', 'max:255'],
             'phone'      => ['required', 'string', 'max:20'],
-            'room_count' => ['required', 'integer', 'min:1', 'max:999'],
+            'room_count' => ['required', 'integer', 'min:1', "max:{$maxRoom}"],
             'plan'       => ['required', 'in:lite,pro,custom'],
             'message'    => ['nullable', 'string', 'max:1000'],
+        ], [
+            'room_count.max' => "Paket " . strtoupper($plan) . " hanya mendukung maksimal {$maxRoom} kamar.",
         ]);
 
         $registration = Registration::create($data + ['status' => 'pending']);
@@ -177,11 +186,12 @@ class RegistrationController extends Controller
     {
         return [
             'lite' => [
-                'label'    => 'LITE',
-                'price'    => 'Rp 199.000',
-                'period'   => 'per bulan',
-                'quota'    => 'Maksimal 20 Kamar',
-                'features' => [
+                'label'     => 'LITE',
+                'price'     => 'Rp 199.000',
+                'period'    => 'per bulan',
+                'quota'     => 'Maksimal 20 Kamar',
+                'max_rooms' => 20,
+                'features'  => [
                     'Pencatatan Terpusat',
                     'Portal Penyewa Mandiri',
                     'Dukungan via WhatsApp',
@@ -190,11 +200,12 @@ class RegistrationController extends Controller
                 'highlight' => false,
             ],
             'pro' => [
-                'label'    => 'PRO',
-                'price'    => 'Rp 499.000',
-                'period'   => 'per bulan',
-                'quota'    => 'Maksimal 40 Kamar',
-                'features' => [
+                'label'     => 'PRO',
+                'price'     => 'Rp 499.000',
+                'period'    => 'per bulan',
+                'quota'     => 'Maksimal 40 Kamar',
+                'max_rooms' => 40,
+                'features'  => [
                     'Semua fitur LITE',
                     'Tagihan Otomatis Penyewa',
                     'Smart WiFi Auto-Block',
@@ -204,11 +215,12 @@ class RegistrationController extends Controller
                 'highlight' => true,
             ],
             'custom' => [
-                'label'    => 'CUSTOM',
-                'price'    => 'Hubungi Kami',
-                'period'   => 'harga disesuaikan',
-                'quota'    => '50+ Kamar',
-                'features' => [
+                'label'     => 'CUSTOM',
+                'price'     => 'Hubungi Kami',
+                'period'    => 'harga disesuaikan',
+                'quota'     => '50+ Kamar',
+                'max_rooms' => 999,
+                'features'  => [
                     'Semua fitur PRO',
                     'Topologi Jaringan Khusus',
                     'Dukungan Teknis Prioritas',
