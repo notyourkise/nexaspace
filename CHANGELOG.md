@@ -9,6 +9,22 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 23:30 WITA — Fix: Badge "Paling Laris" terpotong di tabel perbandingan paket
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `resources/views/landing.blade.php` | (1) Tambah `pt-6` pada grid pricing cards agar badge `absolute -top-4` pada card PRO tidak ter-clip. (2) Ubah badge "Paling Laris" di `<th>` kolom PRO pada tabel perbandingan dari `absolute -top-3` (absolute positioning) menjadi `inline-block` dalam flow normal cell — tidak ter-clip oleh `overflow-x-auto` wrapper tabel. |
+
+**Alasan Perubahan:**
+Badge bertipe `absolute -top-N` yang keluar dari batas elemen induknya akan di-clip ketika salah satu ancestor memiliki `overflow: auto` atau `overflow: hidden`. Wrapper tabel menggunakan `overflow-x-auto` untuk responsive scroll horizontal, yang juga meng-clip overflow vertikal.
+
+**Hasil Akhir:**
+Badge "⭐ Paling Laris" tampil penuh di kedua tempat: kartu PRO (grid) maupun kolom PRO di tabel perbandingan fitur.
+
+---
+
 ### 23:17 WITA — Opsi I–L: Test Coverage, Multi-Router MikroTik, PDF Invoice, Dashboard Chart
 
 **Apa yang Diubah:**

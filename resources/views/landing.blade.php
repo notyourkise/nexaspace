@@ -331,7 +331,7 @@
             </h2>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:items-start">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:items-start pt-6">
 
             {{-- LITE --}}
             <div class="flex flex-col bg-white rounded-2xl p-8 shadow-md border border-gray-200">
@@ -495,11 +495,11 @@
                             LITE
                             <div class="text-xs font-normal text-gray-400 mt-0.5">Rp 199rb/bln</div>
                         </th>
-                        <th class="bg-[#306D29] text-center px-6 py-4 text-white font-bold border-b border-[#2a5e24] relative">
-                            <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow">
+                        <th class="bg-[#306D29] text-center px-6 pt-3 pb-4 text-white font-bold border-b border-[#2a5e24]">
+                            <span class="inline-block bg-yellow-400 text-yellow-900 text-[10px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow mb-1.5">
                                 ⭐ Paling Laris
                             </span>
-                            PRO
+                            <div>PRO</div>
                             <div class="text-xs font-normal text-green-200 mt-0.5">Rp 499rb/bln</div>
                         </th>
                         <th class="bg-white text-center px-6 py-4 text-gray-700 font-bold border-b border-gray-100">
