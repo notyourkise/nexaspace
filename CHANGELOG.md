@@ -9,6 +9,22 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 23:45 WITA — Perbarui README.md agar sesuai kondisi platform saat ini
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `README.md` | Tulis ulang penuh: badge Laravel 13.12 (bukan 12), hapus badge Midtrans, tambah bagian "Live" dengan URL produksi, tambah tabel three-tier role model, perbarui fitur (SaaS multi-tenant, subscription billing, provisioning, email notifications, CSV export, PDF invoice, revenue chart, onboarding widget), perbarui tech stack (hapus Midtrans, tambah dompdf), perbarui service config (hapus Midtrans env, tambah MAIL_*), perbarui seeded accounts (developer + 2 juragan + anak kos), perbarui billing flow (tanpa Midtrans webhook), perbarui project structure, perbarui testing status (125/125 hijau). |
+
+**Alasan Perubahan:**
+README masih mencerminkan versi awal (single-kos, Midtrans, Laravel 12) dan tidak lagi akurat setelah transformasi ke SaaS multi-tenant Phase 1–7.
+
+**Hasil Akhir:**
+README kini selaras penuh dengan CLAUDE.md dan kondisi aktual platform.
+
+---
+
 ### 23:30 WITA — Fix: Badge "Paling Laris" terpotong di tabel perbandingan paket
 
 **Apa yang Diubah:**
