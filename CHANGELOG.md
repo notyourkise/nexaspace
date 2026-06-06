@@ -9,6 +9,23 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+### 03:00 WITA — Halaman Profil & Rekening Bank untuk Juragan
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Pages/JuraganProfilePage.php` | Halaman baru khusus juragan di admin panel: form profil (nama, HP, email notifikasi), Repeater rekening bank (nama bank, nomor rekening, atas nama), upload QRIS, ganti password; hanya tampil untuk `role = juragan` |
+| `resources/views/filament/pages/juragan-profile.blade.php` | View halaman profil juragan: info kos read-only di atas (email login, nama kos, paket, kuota), form profil+rekening+QRIS, form ganti password |
+
+**Alasan Perubahan:**
+`UserResource::getEloquentQuery()` memfilter juragan hanya melihat anak kos mereka (`role=tenant`), sehingga juragan tidak dapat menemukan record dirinya sendiri dan tidak bisa mengedit rekening bank. Halaman khusus ini bypass pembatasan tersebut dan memberi juragan akses langsung ke datanya sendiri tanpa bisa menyentuh data user lain.
+
+**Hasil Akhir:**
+Juragan kini memiliki halaman **"Profil & Rekening"** di navigasi admin panel. Dari sini mereka bisa menambah, mengubah, atau menghapus rekening bank. Data rekening yang disimpan langsung tersedia sebagai pilihan dropdown saat anak kos membayar tagihan di `/tenant/billings`.
+
+---
+
 ### 02:30 WITA — Revisi: Simulasi Pembayaran Anak Kos + Format Amount + Fix Nama Juragan
 
 **Apa yang Diubah:**
