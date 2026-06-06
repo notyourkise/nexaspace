@@ -33,12 +33,40 @@ class UserFactory extends Factory
         ];
     }
 
-    public function admin(): static
+    /** NexaSpace super admin (platform owner). */
+    public function developer(): static
     {
         return $this->state(fn (array $attributes) => [
-            'role'        => 'admin',
+            'role'        => 'developer',
             'room_number' => null,
+            'monthly_rate' => 0,
         ]);
+    }
+
+    /** Backward-compatible alias — the former "admin" is now the developer role. */
+    public function admin(): static
+    {
+        return $this->developer();
+    }
+
+    /** Boarding-house owner (a paying SaaS customer). */
+    public function juragan(): static
+    {
+        return $this->state(function (array $attributes) {
+            $kosName = 'Kos ' . fake()->firstName();
+            $slug    = Str::slug($kosName);
+
+            return [
+                'role'          => 'juragan',
+                'contact_email' => fake()->unique()->safeEmail(),
+                'kos_name'      => $kosName,
+                'kos_slug'      => $slug,
+                'plan'          => fake()->randomElement(['lite', 'pro', 'custom']),
+                'room_quota'    => fake()->randomElement([20, 40, 50]),
+                'room_number'   => null,
+                'monthly_rate'  => 0,
+            ];
+        });
     }
 
     public function unverified(): static

@@ -1,0 +1,11 @@
+# Laravel Scheduler — tambahkan via Hostinger cPanel > Cron Jobs
+# Jalankan setiap menit agar scheduler bisa mengeksekusi task sesuai jadwal
+# Ganti path dengan path absolut project di server
+
+* * * * * cd /home/u123456789/domains/nexaspace.site/public_html && php artisan schedule:run >> /dev/null 2>&1
+
+# Jadwal scheduler internal yang sudah dikonfigurasi di routes/console.php:
+#   01:00 WITA  — ThrottleOverdueTenantsJob    (throttle anak kos yang menunggak)
+#   01:30 WITA  — SuspendOverdueJuraganJob     (suspend juragan yang menunggak langganan)
+#   Tgl 1 00:01 — GenerateMonthlyBillsJob      (buat tagihan anak kos bulan baru)
+#   Tgl 1 00:05 — GenerateMonthlySubscriptionsJob (buat tagihan langganan juragan)

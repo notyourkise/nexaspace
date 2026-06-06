@@ -3,6 +3,10 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Admin\Pages\Login;
+use App\Filament\Widgets\JuraganOnboardingWidget;
+use App\Filament\Widgets\JuraganQuotaWidget;
+use App\Filament\Widgets\MikroTikStatusWidget;
+use App\Filament\Widgets\RevenueChartWidget;
 use App\Filament\Widgets\StatsOverview;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -12,6 +16,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -47,10 +52,33 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                JuraganOnboardingWidget::class,
                 StatsOverview::class,
+                JuraganQuotaWidget::class,
+                RevenueChartWidget::class,
+                MikroTikStatusWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
+            // Lightweight success animation: the green check icon in success toasts
+            // pops in and spins briefly when a CRUD/approval action succeeds.
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => <<<'HTML'
+                    <style>
+                        @keyframes nexaCheckPop {
+                            0%   { transform: scale(0) rotate(-270deg); opacity: 0; }
+                            60%  { transform: scale(1.25) rotate(20deg); opacity: 1; }
+                            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+                        }
+                        .fi-no-notification.fi-color-success .fi-icon,
+                        .fi-no-notification.fi-color-success svg {
+                            animation: nexaCheckPop 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+                            color: #16a34a;
+                        }
+                    </style>
+                    HTML,
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

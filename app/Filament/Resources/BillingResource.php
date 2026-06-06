@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BillingResource\Pages;
 use App\Models\Billing;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -15,6 +16,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class BillingResource extends Resource
@@ -29,8 +31,15 @@ class BillingResource extends Resource
     {
         return $schema->components([
             Select::make('user_id')
-                ->label('Tenant')
-                ->options(User::where('role', 'tenant')->pluck('name', 'id'))
+                ->label('Anak Kos')
+                ->options(function () {
+                    $query = User::where('role', 'tenant');
+                    $user  = auth()->user();
+                    if ($user && $user->isJuragan()) {
+                        $query->where('juragan_id', $user->id);
+                    }
+                    return $query->pluck('name', 'id');
+                })
                 ->searchable()
                 ->required(),
 
@@ -107,23 +116,48 @@ class BillingResource extends Resource
                         'throttled' => 'Throttled',
                     ]),
             ])
+            ->actions([
+                Action::make('download_invoice')
+                    ->label('Invoice PDF')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('gray')
+                    ->url(fn (Billing $record): string => route('invoice.billing', $record))
+                    ->openUrlInNewTab(),
+            ])
             ->bulkActions([
                 BulkAction::make('mark_paid')
                     ->label('Mark as Paid')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['status' => 'paid'])),
+                    ->action(fn (Collection $records) => $records->each->update(['status' => 'paid']))
+                    ->successNotificationTitle('Tagihan ditandai lunas'),
 
                 BulkAction::make('mark_unpaid')
                     ->label('Mark as Unpaid')
                     ->icon('heroicon-o-x-circle')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['status' => 'unpaid'])),
+                    ->action(fn (Collection $records) => $records->each->update(['status' => 'unpaid']))
+                    ->successNotificationTitle('Tagihan ditandai belum lunas'),
             ])
             ->defaultSort('billing_month', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->with('user'));
+    }
+
+    /**
+     * Data isolation: a juragan only sees bills belonging to their own anak kos.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->isJuragan()) {
+            $query->whereHas('user', fn (Builder $q) => $q->where('juragan_id', $user->id));
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array

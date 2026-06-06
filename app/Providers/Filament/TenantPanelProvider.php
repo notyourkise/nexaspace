@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Tenant\Pages\EditProfile;
 use App\Filament\Tenant\Pages\Login;
 use App\Filament\Tenant\Widgets\TenantStatsWidget;
 use Filament\Http\Middleware\Authenticate;
@@ -48,6 +49,7 @@ class TenantPanelProvider extends PanelProvider
             )
             ->pages([
                 Dashboard::class,
+                EditProfile::class,
             ])
             ->discoverWidgets(
                 in: app_path('Filament/Tenant/Widgets'),

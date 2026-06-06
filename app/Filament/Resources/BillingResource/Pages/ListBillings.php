@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\BillingResource\Pages;
 
 use App\Filament\Resources\BillingResource;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Illuminate\Support\Carbon;
 
 class ListBillings extends ListRecords
 {
@@ -14,6 +16,15 @@ class ListBillings extends ListRecords
     {
         return [
             CreateAction::make(),
+
+            Action::make('export_csv')
+                ->label('Export CSV')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->url(fn () => route('export.billing', [
+                    'month' => Carbon::now()->format('Y-m'),
+                ]))
+                ->openUrlInNewTab(),
         ];
     }
 }

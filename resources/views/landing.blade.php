@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id" style="scroll-behavior:smooth;">
 <head>
     <meta charset="utf-8">
@@ -93,7 +93,7 @@
 
             {{-- CTAs --}}
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-                <a href="https://wa.me/6285651384991" target="_blank"
+                <a href="https://wa.me/6285249678700" target="_blank"
                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5
                           px-8 py-4 rounded-2xl font-bold text-base text-white bg-[#306D29]
                           hover:bg-[#0D530E] transition-colors shadow-lg shadow-[#306D29]/25">
@@ -191,7 +191,7 @@
 
         {{-- Bottom CTA --}}
         <div class="text-center mt-32">
-            <a href="https://wa.me/6285651384991"
+            <a href="https://wa.me/6285249678700"
                target="_blank"
                class="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl font-bold text-base text-white
                       transition-colors shadow-lg shadow-[#306D29]/25 bg-[#306D29] hover:bg-[#0D530E]">
@@ -356,8 +356,8 @@
                         </li>
                     @endforeach
                 </ul>
-                <a href="mailto:hello@nexaspace.site"
-                   class="block text-center py-3 rounded-xl font-semibold text-sm
+                <a href="{{ route('daftar', 'lite') }}"
+                   class="block w-full text-center py-3 rounded-xl font-semibold text-sm
                           border-2 border-[#306D29] text-[#306D29]
                           hover:bg-[#306D29] hover:text-white transition-colors duration-150">
                     Pilih LITE
@@ -413,8 +413,8 @@
                     @endforeach
                 </ul>
 
-                <a href="mailto:hello@nexaspace.site"
-                   class="block text-center py-3.5 rounded-xl font-bold text-sm text-white
+                <a href="{{ route('daftar', 'pro') }}"
+                   class="block w-full text-center py-3.5 rounded-xl font-bold text-sm text-white
                           bg-[#306D29] hover:bg-[#0D530E] transition-colors shadow-lg">
                     Mulai Paket PRO →
                 </a>
@@ -446,8 +446,8 @@
                         </li>
                     @endforeach
                 </ul>
-                <a href="mailto:hello@nexaspace.site?subject=Inquiry%20CUSTOM%20Plan%20NexaSpace"
-                   class="block text-center py-3 rounded-xl font-semibold text-sm
+                <a href="{{ route('daftar', 'custom') }}"
+                   class="block w-full text-center py-3 rounded-xl font-semibold text-sm
                           border-2 border-gray-300 text-gray-600
                           hover:border-[#306D29] hover:text-[#306D29] transition-colors duration-150">
                     Hubungi Layanan
@@ -465,7 +465,123 @@
 </section>
 
 {{-- ═══════════════════════════════════════════════════════════
-     F. TESTIMONIALS (auto-scroll marquee)
+     F. PERBANDINGAN PAKET
+════════════════════════════════════════════════════════════ --}}
+<section id="perbandingan" class="bg-[#F8FAF8] py-20 px-4">
+    <div class="max-w-5xl mx-auto">
+
+        <div class="text-center mb-12">
+            <span class="inline-block text-xs font-bold tracking-widest uppercase
+                         px-3 py-1.5 rounded-full bg-[#306D29]/10 text-[#306D29] mb-4">
+                Perbandingan Paket
+            </span>
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
+                Pilih Paket yang Tepat
+            </h2>
+            <p class="text-gray-500 max-w-xl mx-auto text-sm leading-relaxed">
+                Semua paket sudah termasuk onboarding, migrasi data awal, dan dukungan WhatsApp.
+            </p>
+        </div>
+
+        {{-- Comparison table --}}
+        <div class="overflow-x-auto rounded-2xl shadow-sm border border-gray-200">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr>
+                        <th class="bg-white text-left px-6 py-4 text-gray-500 font-semibold w-2/5 border-b border-gray-100">
+                            Fitur
+                        </th>
+                        <th class="bg-white text-center px-6 py-4 text-gray-700 font-bold border-b border-gray-100">
+                            LITE
+                            <div class="text-xs font-normal text-gray-400 mt-0.5">Rp 199rb/bln</div>
+                        </th>
+                        <th class="bg-[#306D29] text-center px-6 py-4 text-white font-bold border-b border-[#2a5e24] relative">
+                            <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold uppercase tracking-wider px-3 py-0.5 rounded-full shadow">
+                                ⭐ Paling Laris
+                            </span>
+                            PRO
+                            <div class="text-xs font-normal text-green-200 mt-0.5">Rp 499rb/bln</div>
+                        </th>
+                        <th class="bg-white text-center px-6 py-4 text-gray-700 font-bold border-b border-gray-100">
+                            CUSTOM
+                            <div class="text-xs font-normal text-gray-400 mt-0.5">Hubungi Kami</div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                    $rows = [
+                        ['Kuota Kamar',                   'Hingga 20 kamar',   'Hingga 40 kamar',  '50+ kamar'],
+                        ['Auto-throttle WiFi Otomatis',   'check', 'check', 'check'],
+                        ['Portal Anak Kos (bayar online)', 'check', 'check', 'check'],
+                        ['Pencatatan Tagihan Terpusat',   'check', 'check', 'check'],
+                        ['Notifikasi WhatsApp Real-time', 'check', 'check', 'check'],
+                        ['Peminjaman Perangkat MikroTik', 'dash',  'check', 'check'],
+                        ['Peminjaman Switch Jaringan',    'dash',  'check', 'check'],
+                        ['Gratis Instalasi Jaringan',     'dash',  'check', 'check'],
+                        ['Topologi Jaringan Khusus',      'dash',  'dash',  'check'],
+                        ['Dukungan Teknis Prioritas 24/7','dash',  'dash',  'check'],
+                        ['SLA & Kontrak Khusus',          'dash',  'dash',  'check'],
+                    ];
+                    @endphp
+
+                    @foreach($rows as $i => $row)
+                    <tr class="{{ $i % 2 === 0 ? 'bg-white' : 'bg-gray-50/60' }}">
+                        <td class="px-6 py-3.5 text-gray-700 font-medium">{{ $row[0] }}</td>
+
+                        @foreach([$row[1], $row[2], $row[3]] as $colIdx => $val)
+                        <td class="text-center px-6 py-3.5 {{ $colIdx === 1 ? 'bg-[#306D29]/5' : '' }}">
+                            @if($val === 'check')
+                                <span class="inline-flex items-center justify-center w-5 h-5 rounded-full
+                                             {{ $colIdx === 1 ? 'bg-[#306D29] text-white' : 'bg-[#306D29]/15 text-[#306D29]' }}">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                    </svg>
+                                </span>
+                            @elseif($val === 'dash')
+                                <span class="text-gray-300 text-lg font-light">—</span>
+                            @else
+                                <span class="text-xs {{ $colIdx === 1 ? 'text-[#306D29] font-semibold' : 'text-gray-600' }}">{{ $val }}</span>
+                            @endif
+                        </td>
+                        @endforeach
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr class="border-t border-gray-200">
+                        <td class="px-6 py-5 bg-white"></td>
+                        <td class="px-6 py-5 text-center bg-white">
+                            <a href="{{ route('daftar', 'lite') }}"
+                               class="inline-block px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-[#306D29]
+                                      text-[#306D29] hover:bg-[#306D29] hover:text-white transition-all">
+                                Pilih LITE
+                            </a>
+                        </td>
+                        <td class="px-6 py-5 text-center bg-[#306D29]/5">
+                            <a href="{{ route('daftar', 'pro') }}"
+                               class="inline-block px-5 py-2.5 rounded-xl text-xs font-bold bg-[#306D29]
+                                      text-white hover:bg-[#0D530E] transition-all shadow-lg shadow-[#306D29]/25">
+                                Pilih PRO
+                            </a>
+                        </td>
+                        <td class="px-6 py-5 text-center bg-white">
+                            <a href="{{ route('daftar', 'custom') }}"
+                               class="inline-block px-5 py-2.5 rounded-xl text-xs font-bold border-2 border-gray-300
+                                      text-gray-600 hover:border-[#306D29] hover:text-[#306D29] transition-all">
+                                Hubungi Kami
+                            </a>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+    </div>
+</section>
+
+{{-- ═══════════════════════════════════════════════════════════
+     G. TESTIMONIALS (auto-scroll marquee)
 ════════════════════════════════════════════════════════════ --}}
 
 {{-- Keyframe animation for the infinite horizontal scroll --}}
@@ -637,7 +753,7 @@
                     Platform manajemen kos modern, tagihan otomatis, WiFi pintar, dan portal penyewa dalam satu sistem.
                 </p>
                 <div class="flex items-center gap-2">
-                    <a href="https://wa.me/6285651384991" target="_blank"
+                    <a href="https://wa.me/6285249678700" target="_blank"
                        class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -696,9 +812,9 @@
                 <p class="text-xs font-bold tracking-widest uppercase text-white/35 mb-5">Hubungi Kami</p>
                 <ul class="flex flex-col gap-3.5 mb-8">
                     <li>
-                        <a href="https://wa.me/6285651384991" target="_blank"
+                        <a href="https://wa.me/6285249678700" target="_blank"
                            class="footer-link text-sm font-bold text-white">
-                            +62 856-5138-4991
+                            +62 852-4967-8700
                         </a>
                     </li>
                     <li>
@@ -727,5 +843,6 @@
     </div>
 </footer>
 
+{{-- Modal form dihapus — registrasi sekarang di halaman /daftar/{plan} --}}
 </body>
 </html>

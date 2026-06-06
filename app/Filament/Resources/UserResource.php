@@ -6,12 +6,15 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class UserResource extends Resource
 {
@@ -43,18 +46,105 @@ class UserResource extends Resource
 
             Select::make('role')
                 ->options([
-                    'admin' => 'Admin',
-                    'tenant' => 'Tenant',
+                    'developer' => 'Developer (Super Admin)',
+                    'juragan'   => 'Juragan (Pemilik Kos)',
+                    'tenant'    => 'Anak Kos',
                 ])
                 ->required()
-                ->default('tenant'),
+                ->live()
+                ->default('tenant')
+                // Only the developer may choose a role; juragan can only create anak kos.
+                ->visible(fn (): bool => auth()->user()?->isDeveloper() ?? false),
+
+            // ── Juragan fields (developer only) ──
+            TextInput::make('kos_name')
+                ->label('Nama Kos')
+                ->maxLength(255)
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
+
+            TextInput::make('kos_slug')
+                ->label('Slug Kos (untuk domain email)')
+                ->helperText('Contoh: "mutiara" → akun anak kos jadi room1@mutiara.com')
+                ->unique(ignoreRecord: true)
+                ->maxLength(255)
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
+
+            Select::make('plan')
+                ->label('Paket Langganan')
+                ->options([
+                    'lite'   => 'LITE (maks 20 kamar)',
+                    'pro'    => 'PRO (maks 40 kamar)',
+                    'custom' => 'CUSTOM (50+ kamar)',
+                ])
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
+
+            TextInput::make('room_quota')
+                ->label('Kuota Akun Anak Kos')
+                ->numeric()
+                ->minValue(0)
+                ->default(0)
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
+
+            // ── Anak kos fields ──
+            // Developer picks the owning juragan; for a juragan it is forced to self
+            // server-side (see CreateUser::mutateFormDataBeforeCreate), so hide it.
+            Select::make('juragan_id')
+                ->label('Juragan')
+                ->relationship('juragan', 'name', fn ($query) => $query->where('role', 'juragan'))
+                ->searchable()
+                ->preload()
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'tenant'),
 
             TextInput::make('room_number')
-                ->maxLength(10),
+                ->label('Nomor Kamar')
+                ->maxLength(10)
+                ->visible(fn (Get $get): bool => $get('role') === 'tenant'),
 
             TextInput::make('phone_number')
                 ->tel()
                 ->maxLength(20),
+
+            TextInput::make('monthly_rate')
+                ->label('Rate Bulanan (Rp)')
+                ->numeric()
+                ->prefix('Rp')
+                ->minValue(0)
+                ->default(0)
+                ->step(1000)
+                ->helperText('Nominal tagihan yang digenerate otomatis setiap tanggal 1.')
+                ->visible(fn (Get $get): bool => $get('role') === 'tenant'),
+
+            // ── MikroTik router config (developer only, for juragan) ──
+            Section::make('Konfigurasi Router MikroTik')
+                ->description('Kosongkan semua field untuk memakai konfigurasi global (.env). Isi jika juragan ini memiliki router sendiri.')
+                ->schema([
+                    TextInput::make('mikrotik_host')
+                        ->label('Host / IP Router')
+                        ->placeholder('192.168.1.1')
+                        ->maxLength(255),
+
+                    TextInput::make('mikrotik_port')
+                        ->label('Port API (default 8728)')
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(65535)
+                        ->placeholder('8728'),
+
+                    TextInput::make('mikrotik_user')
+                        ->label('Username Router')
+                        ->placeholder('admin')
+                        ->maxLength(255),
+
+                    TextInput::make('mikrotik_pass')
+                        ->label('Password Router')
+                        ->password()
+                        ->revealable()
+                        ->maxLength(255),
+                ])
+                ->columns(2)
+                ->collapsible()
+                ->collapsed()
+                ->visible(fn (Get $get): bool => (auth()->user()?->isDeveloper() ?? false) && $get('role') === 'juragan'),
         ]);
     }
 
@@ -72,9 +162,21 @@ class UserResource extends Resource
 
                 BadgeColumn::make('role')
                     ->colors([
-                        'warning' => 'admin',
+                        'danger'  => 'developer',
+                        'warning' => 'juragan',
                         'success' => 'tenant',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'developer' => 'Developer',
+                        'juragan'   => 'Juragan',
+                        'tenant'    => 'Anak Kos',
+                        default     => $state,
+                    }),
+
+                TextColumn::make('kos_name')
+                    ->label('Kos')
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextColumn::make('room_number')
                     ->label('Room')
@@ -82,6 +184,11 @@ class UserResource extends Resource
 
                 TextColumn::make('phone_number')
                     ->label('Phone'),
+
+                TextColumn::make('monthly_rate')
+                    ->label('Rate/Bln')
+                    ->formatStateUsing(fn ($state) => $state > 0 ? 'Rp ' . number_format($state, 0, ',', '.') : '—')
+                    ->sortable(),
 
                 TextColumn::make('devices_count')
                     ->label('Devices')
@@ -96,12 +203,29 @@ class UserResource extends Resource
             ->filters([
                 SelectFilter::make('role')
                     ->options([
-                        'admin' => 'Admin',
-                        'tenant' => 'Tenant',
+                        'developer' => 'Developer',
+                        'juragan'   => 'Juragan',
+                        'tenant'    => 'Anak Kos',
                     ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->withCount('devices'));
+    }
+
+    /**
+     * Data isolation: a juragan only ever sees their own anak kos.
+     * The developer sees every user across the platform.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->isJuragan()) {
+            $query->where('juragan_id', $user->id)->where('role', 'tenant');
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array

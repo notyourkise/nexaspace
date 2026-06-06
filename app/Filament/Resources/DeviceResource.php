@@ -16,6 +16,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 class DeviceResource extends Resource
@@ -30,8 +31,15 @@ class DeviceResource extends Resource
     {
         return $schema->components([
             Select::make('user_id')
-                ->label('Tenant')
-                ->options(User::where('role', 'tenant')->pluck('name', 'id'))
+                ->label('Anak Kos')
+                ->options(function () {
+                    $query = User::where('role', 'tenant');
+                    $user  = auth()->user();
+                    if ($user && $user->isJuragan()) {
+                        $query->where('juragan_id', $user->id);
+                    }
+                    return $query->pluck('name', 'id');
+                })
                 ->searchable()
                 ->required(),
 
@@ -104,21 +112,24 @@ class DeviceResource extends Resource
                     ->icon('heroicon-o-signal-slash')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['status' => 'throttled'])),
+                    ->action(fn (Collection $records) => $records->each->update(['status' => 'throttled']))
+                    ->successNotificationTitle('Perangkat di-throttle'),
 
                 BulkAction::make('unblock')
                     ->label('Set Active')
                     ->icon('heroicon-o-signal')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['status' => 'active'])),
+                    ->action(fn (Collection $records) => $records->each->update(['status' => 'active']))
+                    ->successNotificationTitle('Perangkat diaktifkan'),
 
                 BulkAction::make('block')
                     ->label('Block Selected')
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->action(fn (Collection $records) => $records->each->update(['status' => 'blocked'])),
+                    ->action(fn (Collection $records) => $records->each->update(['status' => 'blocked']))
+                    ->successNotificationTitle('Perangkat diblokir'),
 
                 BulkAction::make('sync_mikrotik')
                     ->label('Sync to MikroTik')
@@ -151,6 +162,21 @@ class DeviceResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(fn ($query) => $query->with('user'));
+    }
+
+    /**
+     * Data isolation: a juragan only sees devices belonging to their own anak kos.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user  = auth()->user();
+
+        if ($user && $user->isJuragan()) {
+            $query->whereHas('user', fn (Builder $q) => $q->where('juragan_id', $user->id));
+        }
+
+        return $query;
     }
 
     public static function getRelations(): array
