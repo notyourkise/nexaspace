@@ -5,6 +5,38 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+## [Sesi Kerja] — 12 Juni 2026
+
+---
+
+### 12:00 WITA — Redesign Dashboard Admin: Dark Premium Theme + Hero Widget
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Filament/Widgets/DeveloperWelcomeWidget.php` | Widget baru khusus developer (sort=-10, columnSpan=full). Mengirim data ke view: nama user, `failedJobs`, `dbHealthy`. `canView()` hanya untuk `isDeveloper()`. |
+| `resources/views/filament/widgets/developer-welcome-widget.blade.php` | View berisi 2-kolom grid: (1) Hero Welcome Card — "WELCOME BACK", nama besar, tanggal, jam realtime Alpine.js (WITA), dekorasi SVG gelombang abstrak + cincin konsentrik + partikel, tombol Sign out; (2) System Overview Card — indikator System Status, Server Uptime, Database, Backup Status dengan dot hijau berdenyut. |
+| `resources/views/filament/widgets/mikrotik-status-widget.blade.php` | Redesign total: badge status dark glass (dark pill), tabel koneksi bertema gelap, tambah ilustrasi SVG router MikroTik — antena, LED berkedip (animasi `<animate>`), port slot, sinyal WiFi arc (tampil saat terhubung). |
+| `app/Providers/Filament/AdminPanelProvider.php` | (1) Hapus `AccountWidget` dan `FilamentInfoWidget` dari dashboard. (2) Tambah `DeveloperWelcomeWidget`. (3) Injeksi CSS ~300 baris via `renderHook(HEAD_END)` mencakup: dark background (#07090D), sidebar (#0B0F14), topbar, glassmorphism card, tabel, form, modal, dropdown, notifikasi, scrollbar, dan semua komponen `nexa-*` untuk widget baru. |
+| `app/Filament/Widgets/StatsOverview.php` | Tambah `sort = 5` agar urutan developer dashboard: DeveloperWelcome → Stats → MikroTik → RevenueChart. |
+| `app/Filament/Widgets/MikroTikStatusWidget.php` | Tambah `columnSpan = 1` (1/3 lebar dashboard 3-kolom). |
+| `app/Filament/Widgets/RevenueChartWidget.php` | Tambah `columnSpan = 2` (2/3 lebar dashboard). Update warna garis chart: `#22c55e` (neon green), area fill `rgba(34,197,94,0.10)`, grid line abu transparan, ticks berwarna abu. |
+
+**Alasan Perubahan:**
+Dashboard default Filament terlalu generik. Developer meminta redesign dengan konsep premium dark SaaS: background hitam (#07090D), glassmorphism card, aksen hijau neon (#22c55e), hero welcome card dengan abstract art SVG, dan System Overview card menggantikan AccountWidget/FilamentInfoWidget bawaan Filament.
+
+**Hasil Akhir:**
+Dashboard developer menampilkan:
+- **Baris 1:** Hero card (2/3) dengan nama besar, jam realtime WITA, seni SVG abstrak, tombol sign out + System Overview card (1/3) dengan 4 indikator kesehatan platform
+- **Baris 2:** 7 stat card (Total Juragan, Anak Kos, Active Devices, Unpaid Bills, Revenue, Pendaftaran, Failed Jobs) dengan glass dark style
+- **Baris 3:** Status Router MikroTik (1/3, dengan SVG router animasi) + Grafik Pendapatan 6 bulan (2/3, garis hijau neon)
+- Seluruh panel: background hitam, sidebar gelap, glassmorphism, scrollbar minimal
+
+125/125 test hijau.
+
+---
+
 ## [Sesi Kerja] — 8 Juni 2026
 
 ---

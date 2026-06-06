@@ -11,6 +11,8 @@ class MikroTikStatusWidget extends Widget
 
     protected static ?int $sort = 10;
 
+    protected int | string | array $columnSpan = 1;
+
     // Refresh the widget every 5 minutes (300 seconds) to reflect cache TTL.
     protected static ?string $pollingInterval = '300s';
 

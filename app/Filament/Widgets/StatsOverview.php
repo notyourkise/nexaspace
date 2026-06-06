@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class StatsOverview extends BaseWidget
 {
+    protected static ?int $sort = 5;
+
     protected function getStats(): array
     {
         $user = auth()->user();

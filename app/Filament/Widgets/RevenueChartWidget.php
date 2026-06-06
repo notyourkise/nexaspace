@@ -12,6 +12,8 @@ class RevenueChartWidget extends ChartWidget
 
     protected static ?int $sort = 20;
 
+    protected int | string | array $columnSpan = 2;
+
     protected ?string $maxHeight = '280px';
 
     protected function getData(): array
@@ -44,12 +46,14 @@ class RevenueChartWidget extends ChartWidget
                 [
                     'label'           => 'Pendapatan (Rp)',
                     'data'            => $data,
-                    'backgroundColor' => 'rgba(48, 109, 41, 0.15)',
-                    'borderColor'     => '#306D29',
+                    'backgroundColor' => 'rgba(34, 197, 94, 0.10)',
+                    'borderColor'     => '#22c55e',
                     'borderWidth'     => 2,
                     'fill'            => true,
                     'tension'         => 0.4,
-                    'pointBackgroundColor' => '#306D29',
+                    'pointBackgroundColor' => '#22c55e',
+                    'pointRadius'     => 4,
+                    'pointHoverRadius' => 6,
                 ],
             ],
             'labels' => $labels,
@@ -75,9 +79,15 @@ class RevenueChartWidget extends ChartWidget
             'scales' => [
                 'y' => [
                     'beginAtZero' => true,
+                    'grid'        => ['color' => 'rgba(255,255,255,0.05)'],
                     'ticks'       => [
+                        'color'    => 'rgba(148,163,184,0.7)',
                         'callback' => "function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }",
                     ],
+                ],
+                'x' => [
+                    'grid'  => ['color' => 'rgba(255,255,255,0.03)'],
+                    'ticks' => ['color' => 'rgba(148,163,184,0.7)'],
                 ],
             ],
         ];
