@@ -12,6 +12,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
 class JuraganProfilePage extends Page implements HasForms
@@ -197,6 +198,30 @@ class JuraganProfilePage extends Page implements HasForms
 
         Notification::make()
             ->title('Password berhasil diubah')
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Hapus QRIS yang sedang tersimpan agar juragan bisa mengganti gambar.
+     * Menghapus file dari storage, mengosongkan kolom di DB, dan membersihkan
+     * preview pada FileUpload tanpa mengganggu field lain yang sedang diisi.
+     */
+    public function deleteQris(): void
+    {
+        $user = auth()->user();
+
+        if ($user->qris_image) {
+            Storage::disk('public')->delete($user->qris_image);
+        }
+
+        $user->update(['qris_image' => null]);
+
+        $this->infoData['qris_image'] = null;
+
+        Notification::make()
+            ->title('QRIS berhasil dihapus')
+            ->body('Silakan upload gambar QRIS baru jika ingin menggantinya.')
             ->success()
             ->send();
     }

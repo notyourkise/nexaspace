@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Pages\JuraganProfilePage;
 use App\Models\User;
 use Filament\Widgets\Widget;
 
@@ -25,7 +26,12 @@ class JuraganOnboardingWidget extends Widget
     private static function hasPendingSetup(User $juragan): bool
     {
         // Masih ada anak kos tanpa monthly_rate.
-        return $juragan->anakKos()->where('monthly_rate', 0)->exists();
+        if ($juragan->anakKos()->where('monthly_rate', 0)->exists()) {
+            return true;
+        }
+
+        // Belum mengisi rekening bank.
+        return empty($juragan->bank_accounts);
     }
 
     protected function getViewData(): array
@@ -37,6 +43,9 @@ class JuraganOnboardingWidget extends Widget
         $hasAllRates   = $noRateRooms->isEmpty();
 
         $hasMikrotik   = ! empty(config('services.mikrotik.host'));
+
+        $bankAccounts  = $juragan->bank_accounts ?? [];
+        $hasBank       = ! empty($bankAccounts);
 
         $steps = [
             [
@@ -54,6 +63,13 @@ class JuraganOnboardingWidget extends Widget
                     : $noRateRooms->count() . ' kamar belum punya tarif — edit di menu Anak Kos',
             ],
             [
+                'done'  => $hasBank,
+                'label' => 'Rekening bank sudah diisi',
+                'note'  => $hasBank
+                    ? count($bankAccounts) . ' rekening terdaftar'
+                    : 'Isi rekening di menu Profil & Rekening agar anak kos bisa bayar',
+            ],
+            [
                 'done'  => $hasMikrotik,
                 'label' => 'Konfigurasi MikroTik tersedia',
                 'note'  => $hasMikrotik
@@ -64,6 +80,8 @@ class JuraganOnboardingWidget extends Widget
 
         $completedCount = collect($steps)->where('done', true)->count();
 
-        return compact('steps', 'completedCount', 'noRateRooms');
+        $profileUrl = JuraganProfilePage::getUrl();
+
+        return compact('steps', 'completedCount', 'noRateRooms', 'hasBank', 'profileUrl');
     }
 }

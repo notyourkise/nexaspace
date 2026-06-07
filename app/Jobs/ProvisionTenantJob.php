@@ -5,12 +5,14 @@ namespace App\Jobs;
 use App\Mail\TenantProvisionedMail;
 use App\Models\ActivityLog;
 use App\Models\Registration;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -54,6 +56,31 @@ class ProvisionTenantJob implements ShouldQueue
                 'phone_number'  => $reg->phone,
             ]);
 
+            // Create the first subscription for the current month immediately, already
+            // marked as PAID. Approving the registration = the developer has verified the
+            // first-month payment (manual transfer during sign-up), so the first month is
+            // lunas from the start. GenerateMonthlySubscriptionsJob only runs on the 1st,
+            // so this also prevents an empty subscriptions page for mid-month juragan.
+            // Subsequent months are generated as 'unpaid' and must be paid by the juragan.
+            if (in_array($reg->plan, ['lite', 'pro'])) {
+                $subMonth = Carbon::now()->startOfMonth();
+                $subExists = Subscription::query()
+                    ->where('juragan_id', $juragan->id)
+                    ->whereYear('subscription_month', $subMonth->year)
+                    ->whereMonth('subscription_month', $subMonth->month)
+                    ->exists();
+
+                if (! $subExists) {
+                    Subscription::create([
+                        'juragan_id'         => $juragan->id,
+                        'amount'             => $reg->plan === 'lite' ? 199_000 : 499_000,
+                        'subscription_month' => $subMonth,
+                        'due_date'           => $subMonth->copy()->addDays(9),
+                        'status'             => 'paid',
+                    ]);
+                }
+            }
+
             $anakKos = [];
 
             for ($i = 1; $i <= $quota; $i++) {
@@ -73,7 +100,9 @@ class ProvisionTenantJob implements ShouldQueue
                 new TenantProvisionedMail($juragan, $defaultPassword, $anakKos)
             );
 
-            $reg->update(['status' => 'active']);
+            // Approving & provisioning means the developer has verified the first-month
+            // payment, so mark the registration paid as well as active.
+            $reg->update(['status' => 'active', 'payment_status' => 'paid']);
 
             ActivityLog::record(
                 event: 'juragan.provisioned',

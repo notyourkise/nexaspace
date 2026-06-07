@@ -8,6 +8,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TenantStatsWidget extends BaseWidget
 {
+    // Digantikan oleh TenantDashboardWidget (tema dark premium).
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     protected function getStats(): array
     {
         $userId = auth()->id();

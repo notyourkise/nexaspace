@@ -76,6 +76,26 @@ class JuraganIsolationTest extends TestCase
         $this->assertSame(1, $deviceUserIds->count());
     }
 
+    public function test_juragan_can_create_device_from_admin_panel(): void
+    {
+        [$juraganA] = $this->seedTwoJuragan();
+
+        $this->actingAs($juraganA);
+
+        $this->assertTrue(DeviceResource::canCreate());
+
+        $this->get('/admin/devices/create')
+            ->assertOk()
+            ->assertSee('Anak Kos')
+            ->assertSee('Nama Device')
+            ->assertSee('MAC Address')
+            ->assertSee('Status Device');
+
+        $this->get('/admin/devices')
+            ->assertOk()
+            ->assertSee('Tambah Device');
+    }
+
     public function test_juragan_only_sees_own_anak_kos_billings(): void
     {
         [$juraganA, $anakA, $juraganB, $anakB] = $this->seedTwoJuragan();
@@ -86,6 +106,21 @@ class JuraganIsolationTest extends TestCase
         $this->assertTrue($billingUserIds->contains($anakA->id));
         $this->assertFalse($billingUserIds->contains($anakB->id));
         $this->assertSame(1, $billingUserIds->count());
+    }
+
+    public function test_juragan_can_create_billing_from_admin_panel(): void
+    {
+        [$juraganA] = $this->seedTwoJuragan();
+
+        $this->actingAs($juraganA);
+
+        $this->assertTrue(BillingResource::canCreate());
+
+        $this->get('/admin/billings/create')->assertOk();
+
+        $this->get('/admin/billings')
+            ->assertOk()
+            ->assertSee('Buat Billing');
     }
 
     public function test_developer_billing_query_is_unscoped(): void

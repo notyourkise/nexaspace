@@ -12,7 +12,12 @@ class RevenueChartWidget extends ChartWidget
 
     protected static ?int $sort = 20;
 
-    protected int | string | array $columnSpan = 2;
+    protected int | string | array $columnSpan = 'full';
+
+    public static function canView(): bool
+    {
+        return false;
+    }
 
     protected ?string $maxHeight = '280px';
 

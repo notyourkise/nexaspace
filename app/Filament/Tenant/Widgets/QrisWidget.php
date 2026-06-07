@@ -10,10 +10,10 @@ class QrisWidget extends Widget
 
     protected static ?int $sort = 5;
 
+    // Digantikan oleh TenantDashboardWidget yang sudah menyertakan blok QRIS.
     public static function canView(): bool
     {
-        $juragan = auth()->user()?->juragan;
-        return $juragan && filled($juragan->qris_image);
+        return false;
     }
 
     protected function getViewData(): array

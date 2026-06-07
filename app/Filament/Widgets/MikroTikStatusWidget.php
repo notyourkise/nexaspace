@@ -18,7 +18,7 @@ class MikroTikStatusWidget extends Widget
 
     public static function canView(): bool
     {
-        return auth()->user()?->isDeveloper() ?? false;
+        return false; // MikroTik status is rendered inside DeveloperWelcomeWidget
     }
 
     protected function getViewData(): array

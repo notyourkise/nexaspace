@@ -36,6 +36,13 @@ class BillingResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->isDeveloper() || $user?->isJuragan();
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -139,6 +146,14 @@ class BillingResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                Action::make('create_billing')
+                    ->label('Buat Billing')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('primary')
+                    ->url(fn (): string => static::getUrl('create'))
+                    ->visible(fn (): bool => static::canCreate()),
+            ])
             ->columns([
                 TextColumn::make('user.name')
                     ->label('Tenant')

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\BillingResource\Pages;
 
 use App\Filament\Resources\BillingResource;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Carbon;
 
@@ -15,8 +14,6 @@ class ListBillings extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
-
             Action::make('export_csv')
                 ->label('Export CSV')
                 ->icon('heroicon-o-arrow-down-tray')

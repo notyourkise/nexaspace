@@ -20,7 +20,7 @@ class BillingReminderWidget extends Widget
 
     public static function canView(): bool
     {
-        return auth()->user()?->isJuragan() ?? false;
+        return false;
     }
 
     protected function getViewData(): array

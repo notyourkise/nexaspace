@@ -16,6 +16,11 @@ class StatsOverview extends BaseWidget
 {
     protected static ?int $sort = 5;
 
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     protected function getStats(): array
     {
         $user = auth()->user();

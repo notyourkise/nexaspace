@@ -38,12 +38,26 @@ class DeviceResource extends Resource
                     if ($user && $user->isJuragan()) {
                         $query->where('juragan_id', $user->id);
                     }
-                    return $query->pluck('name', 'id');
+                    return $query
+                        ->orderByRaw('CAST(room_number AS UNSIGNED), room_number')
+                        ->orderBy('name')
+                        ->get()
+                        ->mapWithKeys(fn (User $tenant): array => [
+                            $tenant->id => trim(collect([
+                                $tenant->room_number ? "Kamar {$tenant->room_number}" : null,
+                                $tenant->name,
+                                $tenant->email,
+                            ])->filter()->implode(' - ')),
+                        ]);
                 })
                 ->searchable()
-                ->required(),
+                ->preload()
+                ->required()
+                ->helperText('Pilih anak kos yang akan didaftarkan perangkatnya.'),
 
             TextInput::make('device_name')
+                ->label('Nama Device')
+                ->placeholder('Contoh: HP Android, Laptop, iPhone')
                 ->required()
                 ->maxLength(255),
 
@@ -51,23 +65,42 @@ class DeviceResource extends Resource
                 ->label('MAC Address')
                 ->required()
                 ->unique(ignoreRecord: true)
+                ->regex('/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/')
                 ->maxLength(17)
-                ->placeholder('AA:BB:CC:DD:EE:FF'),
+                ->placeholder('AA:BB:CC:DD:EE:FF')
+                ->helperText('Gunakan format 6 pasang karakter, contoh: AA:BB:CC:DD:EE:FF.'),
 
             Select::make('status')
+                ->label('Status Device')
                 ->options([
-                    'active' => 'Active',
-                    'throttled' => 'Throttled',
-                    'blocked' => 'Blocked',
+                    'active' => 'Active / Normal',
+                    'throttled' => 'Throttled / Dibatasi',
+                    'blocked' => 'Blocked / Diblokir',
                 ])
                 ->required()
-                ->default('active'),
+                ->default('active')
+                ->helperText('Status awal biasanya Active. Pilih Throttled atau Blocked jika perangkat perlu dibatasi sejak awal.'),
         ]);
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->isDeveloper() || $user?->isJuragan();
     }
 
     public static function table(Table $table): Table
     {
         return $table
+            ->headerActions([
+                \Filament\Actions\Action::make('create_device')
+                    ->label('Tambah Device')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('primary')
+                    ->visible(fn (): bool => static::canCreate())
+                    ->url(fn () => static::getUrl('create')),
+            ])
             ->columns([
                 TextColumn::make('device_name')
                     ->searchable()
@@ -78,12 +111,12 @@ class DeviceResource extends Resource
                     ->searchable(),
 
                 TextColumn::make('user.name')
-                    ->label('Tenant')
+                    ->label('Anak Kos')
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('user.room_number')
-                    ->label('Room')
+                    ->label('Kamar')
                     ->sortable(),
 
                 BadgeColumn::make('status')

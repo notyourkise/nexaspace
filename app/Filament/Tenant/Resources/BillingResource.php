@@ -6,13 +6,16 @@ use App\Filament\Tenant\Resources\BillingResource\Pages;
 use App\Models\Billing;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class BillingResource extends Resource
 {
@@ -83,6 +86,7 @@ class BillingResource extends Resource
                     ->form(function (Billing $record): array {
                         $juragan     = $record->user?->juragan;
                         $bankAccounts = $juragan?->bank_accounts ?? [];
+                        $qrisImage    = $juragan?->qris_image;
 
                         $bankOptions = collect($bankAccounts)
                             ->mapWithKeys(fn ($bank, $i) => [
@@ -90,15 +94,36 @@ class BillingResource extends Resource
                             ])
                             ->all();
 
+                        // Tambah opsi QRIS jika juragan sudah mengunggah QRIS.
+                        if (filled($qrisImage)) {
+                            $bankOptions['qris'] = 'QRIS — Scan untuk bayar';
+                        }
+
                         $fields = [];
 
                         if (! empty($bankOptions)) {
                             $fields[] = Select::make('bank_index')
-                                ->label('Transfer ke Rekening')
+                                ->label('Metode Pembayaran')
                                 ->options($bankOptions)
                                 ->required()
-                                ->helperText('Pilih bank yang kamu gunakan untuk mentransfer.')
+                                ->live()
+                                ->helperText('Pilih rekening tujuan transfer atau QRIS.')
                                 ->native(false);
+                        }
+
+                        // Preview QRIS muncul saat opsi QRIS dipilih.
+                        if (filled($qrisImage)) {
+                            $qrisUrl = asset('storage/' . $qrisImage);
+
+                            $fields[] = Placeholder::make('qris_preview')
+                                ->label('Scan QRIS untuk Membayar')
+                                ->visible(fn (Get $get): bool => $get('bank_index') === 'qris')
+                                ->content(new HtmlString(
+                                    '<a href="' . e($qrisUrl) . '" target="_blank" rel="noopener" title="Buka QRIS ukuran penuh">'
+                                    . '<img src="' . e($qrisUrl) . '" alt="QRIS" '
+                                    . 'style="display:block;width:16rem;max-width:100%;height:auto;background:#fff;padding:0.6rem;border-radius:0.6rem;border:1px solid rgba(0,0,0,0.1);" />'
+                                    . '</a>'
+                                ));
                         }
 
                         $fields[] = FileUpload::make('payment_receipt')

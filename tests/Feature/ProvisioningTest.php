@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Jobs\ProvisionTenantJob;
 use App\Mail\TenantProvisionedMail;
 use App\Models\Registration;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -46,6 +48,7 @@ class ProvisioningTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'room40@kos-mawar.com', 'juragan_id' => $juragan->id]);
 
         $this->assertSame('active', $reg->fresh()->status);
+        $this->assertSame('paid', $reg->fresh()->payment_status);
     }
 
     public function test_lite_plan_provisions_20_anak_kos(): void
@@ -114,6 +117,64 @@ class ProvisioningTest extends TestCase
         $this->assertSame(1, User::where('role', 'juragan')->count());
         $this->assertSame(20, User::where('role', 'tenant')->count());
         Mail::assertSent(TenantProvisionedMail::class, 1);
+    }
+
+    public function test_pro_provisioning_creates_paid_first_month_subscription(): void
+    {
+        Mail::fake();
+        $reg = $this->registration(['plan' => 'pro']);
+
+        ProvisionTenantJob::dispatchSync($reg);
+
+        $juragan = User::where('role', 'juragan')->first();
+        $month   = Carbon::now()->startOfMonth();
+
+        $subscription = Subscription::where('juragan_id', $juragan->id)
+            ->whereYear('subscription_month', $month->year)
+            ->whereMonth('subscription_month', $month->month)
+            ->first();
+
+        $this->assertNotNull($subscription, 'A first-month subscription must be created on provisioning.');
+        $this->assertSame('paid', $subscription->status, 'First-month subscription must start as paid.');
+        $this->assertSame(499_000, (int) $subscription->amount);
+    }
+
+    public function test_lite_provisioning_creates_paid_first_month_subscription_with_lite_amount(): void
+    {
+        Mail::fake();
+        $reg = $this->registration(['plan' => 'lite']);
+
+        ProvisionTenantJob::dispatchSync($reg);
+
+        $juragan      = User::where('role', 'juragan')->first();
+        $subscription = Subscription::where('juragan_id', $juragan->id)->first();
+
+        $this->assertNotNull($subscription);
+        $this->assertSame('paid', $subscription->status);
+        $this->assertSame(199_000, (int) $subscription->amount);
+    }
+
+    public function test_custom_provisioning_does_not_create_subscription(): void
+    {
+        Mail::fake();
+        $reg = $this->registration(['plan' => 'custom', 'room_count' => 60]);
+
+        ProvisionTenantJob::dispatchSync($reg);
+
+        $juragan = User::where('role', 'juragan')->first();
+        $this->assertSame(0, Subscription::where('juragan_id', $juragan->id)->count());
+    }
+
+    public function test_provisioning_does_not_duplicate_first_month_subscription(): void
+    {
+        Mail::fake();
+        $reg = $this->registration(['plan' => 'lite']);
+
+        ProvisionTenantJob::dispatchSync($reg);
+        ProvisionTenantJob::dispatchSync($reg); // second run is a no-op
+
+        $juragan = User::where('role', 'juragan')->first();
+        $this->assertSame(1, Subscription::where('juragan_id', $juragan->id)->count());
     }
 
     public function test_slug_collision_is_resolved(): void

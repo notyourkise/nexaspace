@@ -17,6 +17,7 @@ class Login extends BaseLogin
         return TextInput::make('email')
             ->label(__('filament-panels::auth/pages/login.form.email.label'))
             ->placeholder('anakkos@nexaspace.site')
+            ->prefixIcon('heroicon-o-envelope')
             ->email()
             ->required()
             ->autocomplete()
