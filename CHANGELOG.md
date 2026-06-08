@@ -5,6 +5,34 @@ Zona waktu: **WITA (UTC+8) — Balikpapan, Kalimantan Timur**
 
 ---
 
+## [Sesi Kerja] — 9 Juni 2026
+
+---
+
+### 03:51 WITA — Bugfix: 500 Server Error pada Download Invoice PDF
+
+**Apa yang Diubah:**
+
+| File | Perubahan |
+|---|---|
+| `app/Http/Controllers/InvoiceController.php` | Perbaikan dua titik null-pointer pada method `download()` dan `downloadMerged()`. |
+
+Detail perubahan:
+
+**`download()`** — setelah `$billing->load('user.juragan')`, hasil relasi `user` disimpan ke variabel `$tenant` dan ditambahkan guard `abort_if(! $tenant, 404)` sebelum view di-render. Sebelumnya langsung mengakses `$billing->user->juragan` tanpa null-check, sehingga jika `$billing->user` null akan melempar `Attempt to read property "juragan" on null` → 500.
+
+**`downloadMerged()`** — sama: setelah `$billings->first()->user`, ditambahkan `abort_if(! $tenant, 404)` dan `$juragan` diambil langsung dari `$tenant->juragan` (sebelumnya `$tenant?->juragan` yang masih akan crash di view ketika `$tenant` null).
+
+**Alasan Perubahan:**
+Di production (`nexaspace.site/invoice/billing/36`), halaman download invoice menampilkan 500 Server Error. Dengan `APP_DEBUG=false` di production, error detail tersembunyi, tetapi root cause-nya adalah akses property pada object null: `$billing->user` bisa null jika anak kos terkait dihapus melalui jalur yang tidak melewati FK cascade (misal raw SQL, atau data lama sebelum constraint diterapkan), sementara billing record-nya masih ada. Akibatnya `$billing->user->juragan` langsung throw exception fatal.
+
+**Hasil Akhir:**
+- Jika billing ada namun tenant-nya sudah tidak ada di database, endpoint `/invoice/billing/{id}` mengembalikan **404** (bukan 500) — respons yang lebih tepat secara semantik.
+- Jika data lengkap, PDF invoice ter-generate normal seperti sebelumnya.
+- Perbaikan berlaku untuk endpoint single invoice maupun invoice gabungan.
+
+---
+
 ## [Sesi Kerja] — 7 Juni 2026
 
 ---
@@ -884,6 +912,58 @@ Dashboard developer menampilkan:
 ---
 
 ## [Sesi Kerja] — 8 Juni 2026
+
+---
+
+### 17:51 WITA — Tambah Panduan Teknis Video Demo NexaSpace
+
+**Apa yang Diubah:**
+Dibuat file baru `PANDUAN_DEMO_VIDEO_NEXASPACE.md` yang berisi petunjuk teknis untuk merekam video demonstrasi penggunaan sistem NexaSpace. Dokumen ini memuat konsep video, persiapan sebelum recording, urutan tab yang perlu disiapkan, akun demo, checklist production, rundown detail per scene, narasi per role, checklist fitur, alur demo versi singkat, hal yang perlu dihindari saat recording, tips agar video rapi, dan narasi penutup.
+
+**Alasan Perubahan:**
+Pengguna membutuhkan panduan demonstrasi karena alur NexaSpace cukup panjang dan melibatkan banyak role serta logika sistem. Panduan ini dibuat agar proses recording video dengan Zoom/screen recording dapat berjalan runtut dan semua fitur penting dapat ditampilkan tanpa bergantung pada ingatan presenter.
+
+**Hasil Akhir:**
+Presenter kini memiliki satu dokumen terstruktur untuk membuat video demo NexaSpace dari awal sampai akhir, mencakup perspektif public user, developer, juragan, anak kos, serta penjelasan logika otomatis seperti provisioning, billing, payment recovery, subscription, data isolation, dan Auto-Throttle WiFi Billing.
+
+---
+
+### 03:54 WITA — Revisi BAB IV: BMC Poin Utama + Penjelasan
+
+**Apa yang Diubah:**
+`LAPORAN KEWIRAUSAHAAN BERBASIS TEKNOLOGI.md` pada BAB IV bagian `Business Model Canvas` direvisi kembali agar mengikuti format seperti referensi visual BMC: setiap elemen memiliki daftar "Poin utama" terlebih dahulu, kemudian dilanjutkan dengan bagian "Penjelasan". Elemen BMC disusun sebagai Key Partners, Key Activities, Key Resources, Value Propositions, Customer Relationships, Channels, Customer Segments, Cost Structure, dan Revenue Streams.
+
+**Alasan Perubahan:**
+Pengguna meminta format BMC dibuat seperti contoh, yaitu elemen bisnis ditampilkan dalam poin-poin ringkas terlebih dahulu agar mudah dipindahkan ke desain/slide, lalu diberikan penjelasan naratif di bawahnya agar tetap memenuhi kebutuhan laporan tertulis.
+
+**Hasil Akhir:**
+BAB IV kini lebih sesuai dengan format Business Model Canvas visual: ringkas untuk dibaca cepat, tetapi tetap memiliki uraian lengkap sesuai konteks NexaSpace.
+
+---
+
+### 03:36 WITA — Revisi BAB IV Laporan: Business Model Canvas Per Poin
+
+**Apa yang Diubah:**
+`LAPORAN KEWIRAUSAHAAN BERBASIS TEKNOLOGI.md` pada BAB IV bagian `Business Model Canvas` diubah dari format tabel menjadi uraian per poin. Sembilan elemen BMC kini ditulis sebagai subbagian bernomor: Customer Segments, Value Propositions, Channels, Customer Relationships, Revenue Streams, Key Activities, Key Resources, Key Partnerships, dan Cost Structure.
+
+**Alasan Perubahan:**
+Pengguna meminta BAB IV dibuat per poin agar setiap elemen BMC lebih jelas, misalnya Customer Segments langsung menjelaskan siapa saja target pengguna NexaSpace. Format poin lebih cocok untuk laporan akhir karena lebih naratif dan mudah dipahami dibanding tabel ringkas.
+
+**Hasil Akhir:**
+BAB IV sekarang lebih terstruktur dan mudah dibaca. Setiap elemen Business Model Canvas dijelaskan secara terpisah sesuai konteks NexaSpace sebagai platform SaaS multi-tenant untuk pengelolaan kos, billing, pembayaran manual, QRIS, laporan, dan integrasi MikroTik.
+
+---
+
+### 02:18 WITA — Pengisian Laporan Akhir Kewirausahaan NexaSpace
+
+**Apa yang Diubah:**
+`LAPORAN KEWIRAUSAHAAN BERBASIS TEKNOLOGI.md` diperbarui untuk kebutuhan laporan tugas besar akhir. Bagian Kata Pengantar diganti dari teks panduan menjadi kata pengantar final. BAB I diisi penuh sesuai konteks NexaSpace, meliputi latar belakang, rumusan masalah, tujuan penulisan, dan ruang lingkup proyek. BAB III dirapikan pada istilah TAM/SAM/SOM dan typo penamaan tabel. BAB IV diisi dengan Business Model Canvas lengkap berdasarkan sistem NexaSpace sebagai platform SaaS multi-tenant untuk pengelolaan kos, billing, pembayaran manual, QRIS, laporan, dan integrasi MikroTik Auto-Throttle.
+
+**Alasan Perubahan:**
+File laporan masih memiliki beberapa bagian berupa placeholder/instruksi penulisan, terutama BAB I dan BAB IV. Pengisian dilakukan agar laporan akhir selaras dengan konteks project yang sudah dibangun dan terdokumentasi di `CLAUDE.md`, sehingga isi laporan tidak lagi generik dan menggambarkan NexaSpace secara konkret.
+
+**Hasil Akhir:**
+Laporan kini memiliki BAB I yang siap dibaca sebagai pendahuluan final, BAB III yang lebih konsisten secara istilah, serta BAB IV yang menjelaskan model bisnis NexaSpace melalui sembilan elemen Business Model Canvas. Bagian gambar/base64 di akhir file tidak diubah.
 
 ---
 

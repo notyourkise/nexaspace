@@ -27,10 +27,13 @@ class InvoiceController extends Controller
 
         $billing->load('user.juragan');
 
+        $tenant = $billing->user;
+        abort_if(! $tenant, 404);
+
         $pdf = Pdf::loadView('invoices.billing', [
             'billing'     => $billing,
-            'tenant'      => $billing->user,
-            'juragan'     => $billing->user->juragan,
+            'tenant'      => $tenant,
+            'juragan'     => $tenant->juragan,
             'generatedAt' => Carbon::now(),
         ])->setPaper('a4');
 
@@ -74,8 +77,9 @@ class InvoiceController extends Controller
         // All billings must belong to the same tenant
         abort_if($billings->pluck('user_id')->unique()->count() > 1, 422);
 
-        $tenant      = $billings->first()->user;
-        $juragan     = $tenant?->juragan;
+        $tenant  = $billings->first()->user;
+        abort_if(! $tenant, 404);
+        $juragan = $tenant->juragan;
         $totalAmount = $billings->sum('amount');
         $paidAmount  = $billings->where('status', 'paid')->sum('amount');
         $unpaidAmount = $totalAmount - $paidAmount;
